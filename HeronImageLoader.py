@@ -16,7 +16,8 @@ class rawHeronDataset(Dataset):
         self.folder = folder
         if transform == None:
             self.transform = transform
-        self.imsize = 85
+        self.cropImsize = 85
+        self.rawImsize = (2448, 3264) # h x w
 
         self.imagePaths = self.prepareData()
 
@@ -27,27 +28,33 @@ class rawHeronDataset(Dataset):
         # print(idx)
         # print(self.img_paths[idx])
       
-        pathLabel = self.imagePaths[idx] #(imagePaths, classIndex)    
+        pathLabel = self.imagePaths[idx] #(imagePaths, classIndex) 
+        fileName = os.path.splitext(os.path.basename(pathLabel[0]))[0]   
         try:
             with open(pathLabel[0], "rb") as f:
                 img = Image.open(f).convert("RGB")
 
-            #tensor_image = self.transforms(img)
-
-            if self.transform != None:
-                img = self.transform(img)
-            return img, pathLabel[1], idx, 0
+            cropImg = None
+           
+            cropImg = self.transformCrop(img)
+            img = self.transformTensor(img)
+            return img, cropImg, pathLabel[1], fileName, False
         except OSError:
             # print(f"We had an error loading the image: {pathLabel[0]}")
             return (
-                torch.zeros((3, self.imsize, self.imsize)),
+                torch.zeros((3, self.rawImsize[0], self.rawImsize[1])),
+                torch.zeros((3, self.cropImsize, self.cropImsize)),
                 pathLabel[1],
-                idx,
-                1
+                fileName,
+                True
             )
     
-    def transform(self, img):
-        trsf = T.Compose([T.ToTensor(), lambda im : F.crop(im, top=im.size(dim=1)-self.imsize, left=290, height=self.imsize, width=self.imsize)])
+    def transformCrop(self, img):
+        trsf = T.Compose([T.ToTensor(), lambda im : F.crop(im, top=im.size(dim=1)-self.cropImsize, left=290, height=self.cropImsize, width=self.cropImsize)])
+        return trsf(img)
+    
+    def transformTensor(self, img):
+        trsf = T.ToTensor()
         return trsf(img)
 
     def prepareData(self):
@@ -60,8 +67,6 @@ class rawHeronDataset(Dataset):
             folders = [(folder, i) for (folder, i) in folders if folder == self.folder]
         
         imagePaths = [(glob.glob(os.path.abspath(os.path.join(self.ROOT_DIR, item[0], "*.JPG"))), item[1]) for item in folders]
-        # for item in folders:
-        #     print(glob.glob(os.path.abspath(os.path.join(self.ROOT_DIR, item[0], "*.JPG"))))s
         imagePaths = [(filePath, item[1]) for item in imagePaths for filePath in item[0]]
         #print(f'Debug: imagePaths: {imagePaths[100000]}')
 

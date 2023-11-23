@@ -36,3 +36,55 @@ for folderName in tqdm(folders):
     for imgName in os.listdir(folderPath):
         img = Image.open(os.path.abspath(os.path.join(folderPath, imgName)))
         imagePropsList.append([imgName, folderName, decideM(img, imgName)])  
+
+# %%
+"""
+   find out how to decide if black-white?
+"""
+for path in ["/data/shared/herons/TinaDubach_data/GBU2/2017_GBU2_01310001.JPG", "/data/shared/herons/TinaDubach_data/GBU2/2017_GBU2_01310047.JPG"]: # first is rgb, next is grayscale
+    print(f'Image: {path}')
+    img = Image.open(path)
+    img = np.asarray(img)
+    print(img.shape)
+    w, h, streams = img.shape
+    meanStd = 0
+    for i, j in zip(random.choices(range(w), k=10), random.choices(range(h-200), k=10)):
+        pixelSum = 0
+        randpix = np.array(img[i, j, :])
+        print(randpix)
+        std = randpix.std()
+        print(std)
+        meanStd += std 
+        # for i, s in enumerate(range(streams)):
+        #     pixelSum += img[i, j, s]
+        #     print(f'stream {i} contains pixel val {img[i, j, s]}')
+    print(meanStd)
+
+# %%
+"""
+decides if the image is grayscale - slow
+"""
+# def isGrayscale(img: torch.Tensor): #img: 3 x h x w
+#     print(img.shape)
+#     _, h, w = img.shape
+#     sumStd = 0
+#     for i, j in zip(random.choices(range(h-200), k=10), random.choices(range(w), k=10)):
+#         randpix = np.array(img[:, i, j])
+#         print(randpix)
+#         std = randpix.std()
+#         print(std)
+#         sumStd += std 
+#     if sumStd < 20:
+#         return True
+#     return False
+
+# %%
+"""
+Analize the data for interesting cameras
+"""
+cameraDataDF = pd.read_csv("/data/shared/herons/TinaDubach_data/CameraData_2017_july.csv", encoding='unicode_escape', on_bad_lines="warn", sep=";")
+cameraDataDF.describe()
+# %%
+# cameraDataDF.head(10)
+cameraDataDF.groupby(["camera"]).size()
+cameraDataDF[cameraDataDF["fotocode"] == "2017_SBU4_01270033"]

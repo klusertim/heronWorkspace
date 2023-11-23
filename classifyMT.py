@@ -1,22 +1,19 @@
 # %% 
-%load_ext autoreload
-%autoreload 2
+# %load_ext autoreload
+# %autoreload 2
 
 # %%
 import HeronImageLoader
 import numpy as np
-import matplotlib.pyplot as plt
-import torchvision
+# import matplotlib.pyplot as plt
 import torch
-from torch.utils.data import DataLoader, Dataset, Subset
+from torch.utils.data import DataLoader
 from torchvision.utils import make_grid
 import torchvision.transforms as T
-import torchvision.transforms.functional as F
-import os
 import pandas as pd
-from PIL import Image
 from tqdm import tqdm
-from torchvision.transforms.functional import crop
+from PIL import Image
+import random
 
 
 # %%
@@ -27,43 +24,78 @@ DATA_DIR = '/data/shared/herons/TinaDubach_data'
 """
     function that shows all the images in a 16 size dataloader
 """
-def show_images(images):
-    fig, ax = plt.subplots(figsize=(4, 4))
-    ax.set_xticks([]); ax.set_yticks([])
-    ax.imshow(make_grid((images[:16]), nrow=4
-).permute(1, 2, 0))
-    plt.show()
+# def show_images(images, textarr = []):
+#     plt.figure(figsize=(10, 6))
+#     fig, ax = plt.subplots(figsize=(4, 4))
+#     ax.set_xticks([]); ax.set_yticks([])
+#     ax.imshow(make_grid((images[:16]), nrow=4
+# ).permute(1, 2, 0))
+#     ax = np.array(ax)
+#     if len(textarr) == 16:
+#         for i, axs in enumerate(ax.reshape(-1)):
+#             axs.text(0, 0, str(textarr[i])).set_fontsize("large")
+#         print(textarr)
+#     plt.show()
+
 
 # %%
-imagePropsList = torch.tensor([])
-loader = DataLoader(data, batch_size=64, num_workers=3, shuffle=False) # batch_size=64, num_workers=3
-for img, index in tqdm(loader):
-    #plt.imshow(  img[0].permute(1, 2, 0) )
-    cond = img < 0.5
-    isM = cond.sum(dim=(1, 2, 3)).gt(3690)
-    props = torch.stack((isM, index), -1)
-    imagePropsList = torch.cat((imagePropsList, props))
-
-# %%
-df = pd.DataFrame(imagePropsList, columns=["isM", "class"])
-df.to_csv("imageProps.csv")
-  
+"""
+decides if the image is grayscale and if there's an M in the bottom of the image
+"""
+def decideGrayscale(imgBatch: torch.Tensor): #img: 3 x h x w
+    _, _, h, w = imgBatch.shape
     
-# %%
-"""
- shows a badge of 16 images resized to the M or T in the bottom of the initial image
-"""
-# data = HeronImageLoader.rawHeronDataset(folder="GBU2", transform=T.Compose([T.ToTensor(), lambda im : F.crop(im, top=im.size(dim=1)-85, left=300, height=70, width=70)]))
-# loader = DataLoader(data, batch_size=16, num_workers=4, shuffle=False) # batch_size=64, num_workers=3
-# for imgs, lbl, inx, badImage in tqdm(loader):
-#     print(f'Labels: {type(lbl)}, Index: {inx}')
-#     show_images(imgs)
+    # sample 10 random pixels
+    selectH = random.choices(range(h-200), k=10)
+    selectW = random.choices(range(w), k=10)
+    sampleBatch = imgBatch[:, :, selectH, selectW]
+    stdSum = sampleBatch.std(dim=1).sum(dim=1)
+    isGrayscale = stdSum < 0.1
+    # print(stdSum)
+    # show_images(imgBatch, isGrayscale)
+    return isGrayscale
 
-# %%
-"""
- shows a badge of 16 images resized to the M or T in the bottom of the initial image
-"""
-data = HeronImageLoader.rawHeronDataset(folder="GBU2", transform=T.Compose([T.ToTensor(), lambda im : F.crop(im, top=im.size(dim=1)-85, left=300, height=70, width=70)]))
-loader = DataLoader(data, batch_size=16, num_workers=4, shuffle=False) # batch_size=64, num_workers=3
-for imgs, lbl, inx, badImage in tqdm(loader):
+def decideM(imgBatch: torch.Tensor):
+    cond = imgBatch < 0.5
+    return cond.sum(dim=(1, 2, 3)).gt(3690)
+
+if __name__ == '__main__':
+    # %%
+    """
+    Analize the data for interesting cameras
+    """
+    cameraDataDF = pd.read_csv("/data/shared/herons/TinaDubach_data/CameraData_2017_july.csv", encoding='unicode_escape', on_bad_lines="warn", sep=";")
+    #cameraDataDF.describe()
+    folders = cameraDataDF.groupby(["camera"]).size().sort_values(ascending=False).index
     
+    for folderName in folders[1:10]:
+    # %%
+        print("Working on folder: {folderName}")
+        data = HeronImageLoader.rawHeronDataset(folder=folderName)
+        # print(data.imagePaths[:10])
+        # %%
+        """
+        loads the images and their properies into an array
+        """
+        imagePropsList = np.empty([1, 5])
+        loader = DataLoader(data, batch_size=64, num_workers=3, shuffle=False) # batch_size=64, num_workers=3
+        for rawImg, cropImg, lbl, path, badImage in tqdm(loader):
+            grayScale = decideGrayscale(rawImg)
+            isM = decideM(cropImg)
+            props = np.stack((lbl, path, badImage, isM, grayScale), -1)
+            imagePropsList = np.concatenate((imagePropsList, props))
+            #print(imagePropsList)
+
+
+        # %%
+        """
+            save to csv
+        """
+        df = pd.DataFrame(imagePropsList, columns=["cam", "ImagePath", "badImage", "motion", "grayscale"])
+        try:
+            dfOld = pd.read_csv("imageProps.csv")
+            df = pd.concat([dfOld, df])
+            print("successfully concat with old DataFrame")
+        finally:
+            df.to_csv(f"imageProps{folderName}.csv")
+            print(f"saved work in imageProps{folderName}.csv")
