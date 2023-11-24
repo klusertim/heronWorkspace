@@ -1,0 +1,10 @@
+{
+    "name": "Codespace for Herons",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "GitHub.copilot"
+            ]
+        }
+    }
+}
