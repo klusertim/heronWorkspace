@@ -81,6 +81,7 @@ class HeronDataset(Dataset):
 
     imsize = (2448-100, 3264) # h x w
     def __init__(self, set="train", transform=None, resize_to=(2448-100, 3264)):
+        # TODO: train with more than only one camera
         df1 = pd.read_csv("/data/shared/herons/TinaDubach_data/CameraData_2017_july.csv", encoding='unicode_escape', on_bad_lines="warn", sep=";")
         df2 = pd.read_csv("imageProps.csv", on_bad_lines="warn")
         df = pd.merge(df1, df2, left_on="fotocode", how="right", right_on="ImagePath")
@@ -161,22 +162,22 @@ class HeronDataset(Dataset):
 """
 Try out for test/training set
 """
-df1 = pd.read_csv("/data/shared/herons/TinaDubach_data/CameraData_2017_july.csv", encoding='unicode_escape', on_bad_lines="warn", sep=";")
-df2 = pd.read_csv("imageProps.csv", on_bad_lines="warn")
-#print(df1.head(10))
-#print(df2.head(10))
-df = pd.merge(df1, df2, left_on="fotocode", how="right", right_on="ImagePath")
-#df = df[(df["motion"] == "False") & (df["badImage"] == "False") & (df["grayscale"] == "False") & (~ df["species"].notna())]
-df["ImagePath"].unique().size
-#df.head(10)
-df[(df["motion"] == "False") & (df["badImage"] == "False") & (df["grayscale"] == "False") & ( df["species"].notna())]["ImagePath"].unique().size
+# df1 = pd.read_csv("/data/shared/herons/TinaDubach_data/CameraData_2017_july.csv", encoding='unicode_escape', on_bad_lines="warn", sep=";")
+# df2 = pd.read_csv("imageProps.csv", on_bad_lines="warn")
+# #print(df1.head(10))
+# #print(df2.head(10))
+# df = pd.merge(df1, df2, left_on="fotocode", how="right", right_on="ImagePath")
+# #df = df[(df["motion"] == "False") & (df["badImage"] == "False") & (df["grayscale"] == "False") & (~ df["species"].notna())]
+# df["ImagePath"].unique().size
+# #df.head(10)
+# df[(df["motion"] == "False") & (df["badImage"] == "False") & (df["grayscale"] == "False") & ( df["species"].notna())]["ImagePath"].unique().size
 
-# %%
-for i, path in enumerate(df[(df["motion"] == "True") & (df["badImage"] == "False") & (df["grayscale"] == "False") & (~ df["species"].notna())]["ImagePath"]):
-    img = Image.open(f'/data/shared/herons/TinaDubach_data/{path[5:9]}/{path}.JPG')
-    plt.imshow(img)
-    plt.show()
-    if i > 50:
-        break
+# # %%
+# for i, path in enumerate(df[(df["motion"] == "True") & (df["badImage"] == "False") & (df["grayscale"] == "False") & (~ df["species"].notna())]["ImagePath"]):
+#     img = Image.open(f'/data/shared/herons/TinaDubach_data/{path[5:9]}/{path}.JPG')
+#     plt.imshow(img)
+#     plt.show()
+#     if i > 50:
+#         break
 
 # %%

@@ -1,19 +1,22 @@
+# %%
+from models import CAE
+
+# %%
 import lightning as pl
 from lightning.pytorch.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
 from HeronImageLoader import HeronDataset
 from torch.utils.data import DataLoader
 import torch
-from models import CAE
 import torch.nn.functional as F
 
 
-class AEHeronModelV1(pl.LightningModule):
+class AEHeronModel(pl.LightningModule):
     
     def __init__(self, learning_rate=1e-4,
         batch_size=32,
         weight_decay=1e-8,
         num_workers_loader=4):
-        super(AEHeronModelV1, super).__init__()
+        super(AEHeronModel, super).__init__()
 
         self.learning_rate = learning_rate
         self.weight_decay = weight_decay
