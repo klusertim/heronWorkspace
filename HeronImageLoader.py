@@ -17,8 +17,7 @@ class rawHeronDataset(Dataset):
     def __init__(self, folder="all", transform=None):
         
         self.folder = folder
-        if transform == None:
-            self.transform = transform
+       
         self.cropImsize = 85
         self.rawImsize = (2448, 3264) # h x w
 
@@ -72,7 +71,92 @@ class rawHeronDataset(Dataset):
         #print(f'Debug: imagePaths: {imagePaths[100000]}')
 
         return imagePaths
+
+
+MEAN = 0.5
+STD = 0.5
+
+class HeronDataset(Dataset):
+    ROOT_DIR = '/data/shared/herons/TinaDubach_data'
+
+    imsize = (2448-100, 3264) # h x w
+    def __init__(self, set="train", transform=None, resize_to=(2448-100, 3264)):
+        df1 = pd.read_csv("/data/shared/herons/TinaDubach_data/CameraData_2017_july.csv", encoding='unicode_escape', on_bad_lines="warn", sep=";")
+        df2 = pd.read_csv("imageProps.csv", on_bad_lines="warn")
+        df = pd.merge(df1, df2, left_on="fotocode", how="right", right_on="ImagePath")
+
+        self.set = set
+        self.imsize = resize_to
+
+        if set == "test":
+            self.imagePaths, self.lbl = self.prepareTest(df)
+        elif set == "val":
+            self.imagePaths, self.lbl = self.prepareVal(df)
+        else:
+            self.imagePaths, self.lbl = self.prepareTrain(df)
+
+    def __len__(self):
+        return len(self.imagePaths)
+
+    def __getitem__(self, idx):
+        # print(idx)
+        # print(self.img_paths[idx])
+      
+        fotocode = self.imagePaths[idx]
+        try:
+            with open(f'/data/shared/herons/TinaDubach_data/{fotocode[5:9]}/{fotocode}.JPG', "rb") as f:
+                img = Image.open(f).convert("RGB")
+
+            img = self.transform(img)
+
+            return img, self.lbl[idx], idx
+        except OSError:
+            print(f"Error occured loading the image: {fotocode}")
+            return (
+                torch.zeros((3, self.imsize[0], self.imsize[1])),
+                0,
+                idx
+            )
     
+    def transform(self, img):
+        trsf = T.Compose(
+            [
+                T.RandomHorizontalFlip(p=0.5),
+                T.ToTensor(),
+                lambda im : F.crop(im, top=0, left=0, height=2448-100, width=3264),
+                T.Resize([self.imsize[0], self.imsize[1]]),
+                T.Normalize((MEAN, MEAN, MEAN), (STD, STD, STD))
+            ]
+        )
+        return trsf(img)
+
+    """ TODO: at the moment, splits are made only for training with one camera
+    splits: 0.8 train, 0.1 val, 0.1 test, where test contains anomalous frames as well
+    """
+    def prepareTrain(self, df: pd.DataFrame):
+        pathList = df[(df["motion"] == "False") & (df["badImage"] == "False") & (df["grayscale"] == "False") & (~ df["species"].notna())]["ImagePath"].to_list()
+        lenTest = int(len(pathList) * 0.9)
+        pathList = pathList[:lenTest]
+        return pathList, [0 for _ in range(len(pathList))]
+
+    def prepareVal(self, df: pd.DataFrame):
+        pathList = df[(df["motion"] == "False") & (df["badImage"] == "False") & (df["grayscale"] == "False") & (~ df["species"].notna())]["ImagePath"].to_list()
+        pathLen = len(pathList)
+        lenTest = int(pathLen * 0.9)
+        pathList = pathList[lenTest:lenTest+int(pathLen*0.1)]
+        return pathList, [0 for _ in range(len(pathList))]
+    
+    def prepareTest(self, df: pd.DataFrame):
+        pathListNeg = df[(df["motion"] == "False") & (df["badImage"] == "False") & (df["grayscale"] == "False") & (~ df["species"].notna())]["ImagePath"].to_list()
+        # only pos we're sure of
+        pathListPos = df[(df["motion"] == "False") & (df["badImage"] == "False") & (df["grayscale"] == "False") & (df["species"].notna())]["ImagePath"].to_list()
+        negPathLen = len(pathListNeg)
+        lenTest = int(negPathLen * 0.9)
+        pathListNeg = pathListNeg[lenTest+int(lenTest*0.1):]
+        return pathListNeg + pathListPos, [0 for _ in range(len(pathListNeg))] + [1 for _ in range(len(pathListPos))]
+
+# TODO: build denormalizer
+
 # %%
 """
 Try out for test/training set
