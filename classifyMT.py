@@ -67,10 +67,10 @@ if __name__ == '__main__':
     cameraDataDF = pd.read_csv("/data/shared/herons/TinaDubach_data/CameraData_2017_july.csv", encoding='unicode_escape', on_bad_lines="warn", sep=";")
     #cameraDataDF.describe()
     folders = cameraDataDF.groupby(["camera"]).size().sort_values(ascending=False).index
-    
+    lastCSVName = "imageProps.csv"
     for folderName in folders[1:10]:
     # %%
-        print("Working on folder: {folderName}")
+        print(f"Working on folder: {folderName}")
         data = HeronImageLoader.rawHeronDataset(folder=folderName)
         # print(data.imagePaths[:10])
         # %%
@@ -78,7 +78,7 @@ if __name__ == '__main__':
         loads the images and their properies into an array
         """
         imagePropsList = np.empty([1, 5])
-        loader = DataLoader(data, batch_size=64, num_workers=3, shuffle=False) # batch_size=64, num_workers=3
+        loader = DataLoader(data, batch_size=64, num_workers=2, shuffle=False) # batch_size=64, num_workers=3
         for rawImg, cropImg, lbl, path, badImage in tqdm(loader):
             grayScale = decideGrayscale(rawImg)
             isM = decideM(cropImg)
@@ -93,9 +93,11 @@ if __name__ == '__main__':
         """
         df = pd.DataFrame(imagePropsList, columns=["cam", "ImagePath", "badImage", "motion", "grayscale"])
         try:
-            dfOld = pd.read_csv("imageProps.csv")
+            dfOld = pd.read_csv(lastCSVName)
             df = pd.concat([dfOld, df])
             print("successfully concat with old DataFrame")
         finally:
-            df.to_csv(f"imageProps{folderName}.csv")
-            print(f"saved work in imageProps{folderName}.csv")
+            thisCSVName = f"imageProps{folderName}.csv"
+            df.to_csv(thisCSVName)
+            print(f"saved work in {thisCSVName}")
+            lastCSVName = thisCSVName

@@ -88,3 +88,4 @@ cameraDataDF.describe()
 # cameraDataDF.head(10)
 cameraDataDF.groupby(["camera"]).size()
 cameraDataDF[cameraDataDF["fotocode"] == "2017_SBU4_01270033"]
+
