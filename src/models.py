@@ -18,7 +18,7 @@ class CAE(nn.Module):
             nn.LeakyReLU(True),
 
             #36 x 24
-            nn.Conv2d(ldim * 2, ldim * 4, 5, stride=3, padding=1, bias=False),
+            nn.Conv2d(ldim * 2, ldim * 4, 5, stride=3, padding=2, bias=False),
             nn.BatchNorm2d(4*ldim),
             nn.LeakyReLU(True),
 
@@ -36,26 +36,21 @@ class CAE(nn.Module):
 
         nonlin = nn.ReLU
         self.decoder = nn.Sequential(
-            
+        
             nn.Unflatten(1, (ldim * 4, 12, 8)),
             # 12 x 8
 
-            nn.ConvTranspose2d(ldim * 4, ldim * 2, 5, stride=2, padding=2, bias=False),
+            nn.ConvTranspose2d(ldim * 4, ldim * 2, 5, stride=3, padding=(1, 1), bias=False),
             nn.BatchNorm2d(ldim * 2),
             nonlin(True),
 
             #36 x 24
-            nn.ConvTranspose2d(ldim * 2, ldim, 5, stride=2, padding=2, bias=False),
-            nn.BatchNorm2d(ldim * 2),
+            nn.ConvTranspose2d(ldim * 2, ldim, 5, stride=3, padding=1, bias=False),
+            nn.BatchNorm2d(ldim),
             nonlin(True),
 
             #108 x 72
-            nn.ConvTranspose2d(ldim, image_channels, 5, stride=2, padding=2, bias=False),
-            nn.BatchNorm2d(ldim * 2),
-            nonlin(True),
-
-            #324 x 216
-            nn.ConvTranspose2d(ldim * 2, ldim, 3, stride=2, padding=1, bias=False),
+            nn.ConvTranspose2d(ldim, image_channels, 5, stride=3, padding=1, bias=False),
             
             nn.Tanh()
 

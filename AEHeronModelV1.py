@@ -1,13 +1,25 @@
 # %%
+
+# import sys
+# sys.path.append("/data/tim/heronWorkspace/src")
+
+#! export PYTHONPATH="/data/tim/heronWorkspace/src"
+#%%
 from models import CAE
 
 # %%
 import lightning as pl
 from lightning.pytorch.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
-from HeronImageLoader import HeronDataset
+from HeronImageLoader import HeronDataset, UnNormalize
 from torch.utils.data import DataLoader
 import torch
 import torch.nn.functional as F
+import matplotlib.pyplot as plt
+from torchvision.utils import make_grid
+import numpy as np
+
+
+
 
 
 class AEHeronModel(pl.LightningModule):
@@ -16,7 +28,7 @@ class AEHeronModel(pl.LightningModule):
         batch_size=32,
         weight_decay=1e-8,
         num_workers_loader=4):
-        super(AEHeronModel, super).__init__()
+        super(AEHeronModel, self).__init__() # changed from super(AEHeronModel, self).__init__(), seems to be jupyter issue
 
         self.learning_rate = learning_rate
         self.weight_decay = weight_decay
@@ -26,7 +38,7 @@ class AEHeronModel(pl.LightningModule):
         self.model = CAE()
 
         # dataset specific attributes
-        self.imsize = (324, 316)
+        self.imsize = (324, 216)
         self.dims = (3, self.imsize[0], self.imsize[1])
     
     def forward(self, x):
@@ -34,7 +46,7 @@ class AEHeronModel(pl.LightningModule):
         print(f"enc {x.shape}")
         # x = self.model.bottleneck(x)
         x = self.model.decoder(x)
-        print(f"bot {x.shape}")
+        print(f"dec {x.shape}")
 
         return x
     
@@ -81,19 +93,28 @@ class AEHeronModel(pl.LightningModule):
 
     def predict_step(self, batch, batch_idx, dataloader_idx: int = None):
         x, y, _ = batch
-        if len(x.shape) > 4:
-            x = x[0, ...]
-            preds = self(x)
-            # # print(logits.shape)
-            # pp = torch.softmax(logits, dim=1)
-            # max_pos = torch.argmax(pp[:, 1])
-            # probs = pp[max_pos, :]
-            # preds = torch.argmax(probs)
-        else:
-            preds = self(x)
-            # print(logits.shape)
-            # probs = torch.softmax(logits, dim=1)
-            # preds = torch.argmax(probs, dim=1)
+
+        preds = self(x)
+        unNorm = UnNormalize()
+        plt.figure(figsize=(len(x), 50))
+        fig, ax = plt.subplots(figsize=(len(x), 2))
+        ax.set_xticks([]); ax.set_yticks([])
+        # print(f'shape x: {x.shape}, preds: {preds.shape}')
+        ax.imshow(make_grid(torch.concat([unNorm(x), unNorm(preds)]).cpu(), nrow=len(x)).permute(1, 2, 0))
+        plt.show()
+        # if len(x.shape) > 4:
+        #     x = x[0, ...]
+        #     preds = self(x)
+        #     # # print(logits.shape)
+        #     # pp = torch.softmax(logits, dim=1)
+        #     # max_pos = torch.argmax(pp[:, 1])
+        #     # probs = pp[max_pos, :]
+        #     # preds = torch.argmax(probs)
+        # else:
+        #     preds = self(x)
+        #     # print(logits.shape)
+        #     # probs = torch.softmax(logits, dim=1)
+        #     # preds = torch.argmax(probs, dim=1)
 
         return preds  
     
@@ -109,6 +130,9 @@ class AEHeronModel(pl.LightningModule):
         return DataLoader(self.val_dataset, batch_size=self.batch_size, shuffle=False, num_workers=self.num_workers_loader)
     
     def test_dataloader(self) -> EVAL_DATALOADERS:
+        return  DataLoader(self.test_dataset, batch_size=self.batch_size, shuffle=False, num_workers=self.num_workers_loader)
+    
+    def predict_dataloader(self) -> EVAL_DATALOADERS:
         return  DataLoader(self.test_dataset, batch_size=self.batch_size, shuffle=False, num_workers=self.num_workers_loader)
     
     

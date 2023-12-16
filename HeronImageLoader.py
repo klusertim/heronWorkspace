@@ -80,7 +80,7 @@ class HeronDataset(Dataset):
     ROOT_DIR = '/data/shared/herons/TinaDubach_data'
 
     imsize = (2448-100, 3264) # h x w
-    def __init__(self, set="train", transform=None, resize_to=(2448-100, 3264)):
+    def __init__(self, set="train", transform=None, resize_to = (324, 216)):
         # TODO: train with more than only one camera
         df1 = pd.read_csv("/data/shared/herons/TinaDubach_data/CameraData_2017_july.csv", encoding='unicode_escape', on_bad_lines="warn", sep=";")
         df2 = pd.read_csv("imageProps.csv", on_bad_lines="warn")
@@ -109,7 +109,8 @@ class HeronDataset(Dataset):
                 img = Image.open(f).convert("RGB")
 
             img = self.transform(img)
-
+            plt.imshow(img.permute(1, 2, 0))
+            plt.show()
             return img, self.lbl[idx], idx
         except OSError:
             print(f"Error occured loading the image: {fotocode}")
@@ -121,12 +122,12 @@ class HeronDataset(Dataset):
     
     def transform(self, img):
         trsf = T.Compose(
-            [
-                T.RandomHorizontalFlip(p=0.5),
+            [ # TODO: the data is probably a mix of float and int
+                #T.RandomHorizontalFlip(p=0.5),
                 T.ToTensor(),
                 lambda im : F.crop(im, top=0, left=0, height=2448-100, width=3264),
-                T.Resize([self.imsize[0], self.imsize[1]]),
-                T.Normalize((MEAN, MEAN, MEAN), (STD, STD, STD))
+                # T.Resize([self.imsize[0], self.imsize[1]]),
+                # T.Normalize((MEAN, MEAN, MEAN), (STD, STD, STD)),
             ]
         )
         return trsf(img)
@@ -156,7 +157,22 @@ class HeronDataset(Dataset):
         pathListNeg = pathListNeg[lenTest+int(lenTest*0.1):]
         return pathListNeg + pathListPos, [0 for _ in range(len(pathListNeg))] + [1 for _ in range(len(pathListPos))]
 
-# TODO: build denormalizer
+class UnNormalize(object):
+    def __init__(self, mean = (MEAN, MEAN, MEAN), std = (STD, STD, STD)):
+        self.mean = mean
+        self.std = std
+
+    def __call__(self, tensor):
+        """
+        Args:
+            tensor (Tensor): Tensor image of size (C, H, W) to be normalized.
+        Returns:
+            Tensor: Normalized image.
+        """
+        for t, m, s in zip(tensor, self.mean, self.std):
+            t.mul_(s).add_(m)
+            # The normalize code -> t.sub_(m).div_(s)
+        return tensor
 
 # %%
 """
