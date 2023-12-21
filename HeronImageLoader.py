@@ -80,7 +80,7 @@ class HeronDataset(Dataset):
     ROOT_DIR = '/data/shared/herons/TinaDubach_data'
 
     imsize = (2448-100, 3264) # h x w
-    def __init__(self, set="train", transform=None, resize_to = (324, 216)):
+    def __init__(self, set="train", transform=None, resize_to = (216, 324)):
         # TODO: train with more than only one camera
         df1 = pd.read_csv("/data/shared/herons/TinaDubach_data/CameraData_2017_july.csv", encoding='unicode_escape', on_bad_lines="warn", sep=";")
         df2 = pd.read_csv("imageProps.csv", on_bad_lines="warn")
@@ -100,17 +100,13 @@ class HeronDataset(Dataset):
         return len(self.imagePaths)
 
     def __getitem__(self, idx):
-        # print(idx)
-        # print(self.img_paths[idx])
-      
+        
         fotocode = self.imagePaths[idx]
         try:
             with open(f'/data/shared/herons/TinaDubach_data/{fotocode[5:9]}/{fotocode}.JPG', "rb") as f:
                 img = Image.open(f).convert("RGB")
 
             img = self.transform(img)
-            plt.imshow(img.permute(1, 2, 0))
-            plt.show()
             return img, self.lbl[idx], idx
         except OSError:
             print(f"Error occured loading the image: {fotocode}")
@@ -121,13 +117,12 @@ class HeronDataset(Dataset):
             )
     
     def transform(self, img):
-        trsf = T.Compose(
-            [ # TODO: the data is probably a mix of float and int
+        trsf = T.Compose([
                 #T.RandomHorizontalFlip(p=0.5),
                 T.ToTensor(),
-                lambda im : F.crop(im, top=0, left=0, height=2448-100, width=3264),
-                # T.Resize([self.imsize[0], self.imsize[1]]),
-                # T.Normalize((MEAN, MEAN, MEAN), (STD, STD, STD)),
+                lambda im : F.crop(im, top=0, left=0, height=2448-190, width=3264),
+                T.Resize([self.imsize[0], self.imsize[1]]),
+                T.Normalize(mean=(MEAN, MEAN, MEAN), std=(STD, STD, STD))
             ]
         )
         return trsf(img)

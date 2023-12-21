@@ -38,7 +38,7 @@ class AEHeronModel(pl.LightningModule):
         self.model = CAE()
 
         # dataset specific attributes
-        self.imsize = (324, 216)
+        self.imsize = (216, 324)
         self.dims = (3, self.imsize[0], self.imsize[1])
     
     def forward(self, x):
@@ -102,6 +102,7 @@ class AEHeronModel(pl.LightningModule):
         # print(f'shape x: {x.shape}, preds: {preds.shape}')
         ax.imshow(make_grid(torch.concat([unNorm(x), unNorm(preds)]).cpu(), nrow=len(x)).permute(1, 2, 0))
         plt.show()
+        
         # if len(x.shape) > 4:
         #     x = x[0, ...]
         #     preds = self(x)
@@ -118,21 +119,21 @@ class AEHeronModel(pl.LightningModule):
 
         return preds  
     
-    def prepare_data(self) -> None:
-        self.train_dataset = HeronDataset(set="train", resize_to=self.imsize)
-        self.val_dataset = HeronDataset(set="val", resize_to=self.imsize)
-        self.test_dataset = HeronDataset(set="test", resize_to=self.imsize)
+    # def prepare_data(self) -> None:
+    #     self.train_dataset = HeronDataset(set="train", resize_to=self.imsize)
+    #     self.val_dataset = HeronDataset(set="val", resize_to=self.imsize)
+    #     self.test_dataset = HeronDataset(set="test", resize_to=self.imsize)
     
-    def train_dataloader(self) -> TRAIN_DATALOADERS:
-        return DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=self.num_workers_loader)
+    def train_dataloader(self):
+        return DataLoader(HeronDataset(set="train", resize_to=self.imsize), batch_size=self.batch_size, shuffle=True, num_workers=self.num_workers_loader)
     
     def val_dataloader(self) -> EVAL_DATALOADERS:
-        return DataLoader(self.val_dataset, batch_size=self.batch_size, shuffle=False, num_workers=self.num_workers_loader)
+        return DataLoader(HeronDataset(set="val", resize_to=self.imsize), batch_size=self.batch_size, shuffle=False, num_workers=self.num_workers_loader)
     
-    def test_dataloader(self) -> EVAL_DATALOADERS:
-        return  DataLoader(self.test_dataset, batch_size=self.batch_size, shuffle=False, num_workers=self.num_workers_loader)
+    def test_dataloader(self):
+        return  DataLoader(HeronDataset(set="test", resize_to=self.imsize), batch_size=self.batch_size, shuffle=False, num_workers=self.num_workers_loader)
     
-    def predict_dataloader(self) -> EVAL_DATALOADERS:
-        return  DataLoader(self.test_dataset, batch_size=self.batch_size, shuffle=False, num_workers=self.num_workers_loader)
+    def predict_dataloader(self):
+        return  DataLoader(HeronDataset(set="test", resize_to=self.imsize), batch_size=self.batch_size, shuffle=False, num_workers=self.num_workers_loader)
     
     

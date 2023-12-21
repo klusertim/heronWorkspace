@@ -7,6 +7,16 @@ class CAE(nn.Module):
 
         self.encoder = nn.Sequential(         
 
+            #calculation of the output size of the convolutions
+            # 11 * 3 - 2 * 1 + 1 * (5-1) +  1
+            # 35 * 3 - 2 * 1 + 1 * (5-1) +  1
+            # 107 * 3 - 2 * 1 + 1 * (5-1) +  1
+
+            # 8 * 3 - 2 * 2 + 1 * (4-1) + 1
+            # 23 * 3 - 2 * 1 + 1 * (5-1) +  1
+            # 71 * 3 - 2 * 1 + 1 * (5-1) +  1
+
+            #the dimensions are just turned around
             #324 x 216 - almost equal to spanish paper
             nn.Conv2d(image_channels, ldim, 5, stride=3, padding=2, bias=False),
             nn.BatchNorm2d(ldim),
@@ -37,7 +47,7 @@ class CAE(nn.Module):
         nonlin = nn.ReLU
         self.decoder = nn.Sequential(
         
-            nn.Unflatten(1, (ldim * 4, 12, 8)),
+            nn.Unflatten(1, (ldim * 4, 8, 12)),
             # 12 x 8
 
             nn.ConvTranspose2d(ldim * 4, ldim * 2, 5, stride=3, padding=(1, 1), bias=False),
