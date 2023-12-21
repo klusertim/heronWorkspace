@@ -26,9 +26,9 @@ trainer.fit(cae)
 
 # %%
 # predict some images
-model = AEHeronModel.load_from_checkpoint("/data/tim/heronWorkspace/lightning_logs/version_18/checkpoints/epoch=0-step=236.ckpt")
-trainer = pl.Trainer()
-trainer.predict(model)
+# cae = AEHeronModel.load_from_checkpoint("/data/tim/heronWorkspace/lightning_logs/version_18/checkpoints/epoch=0-step=236.ckpt")
+# trainer = pl.Trainer()
+trainer.predict(cae)
 
 # %%
 # play around with different loader settings

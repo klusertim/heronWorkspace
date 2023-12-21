@@ -122,7 +122,7 @@ class HeronDataset(Dataset):
                 T.ToTensor(),
                 lambda im : F.crop(im, top=0, left=0, height=2448-190, width=3264),
                 T.Resize([self.imsize[0], self.imsize[1]]),
-                T.Normalize(mean=(MEAN, MEAN, MEAN), std=(STD, STD, STD))
+                # T.Normalize(mean=(MEAN, MEAN, MEAN), std=(STD, STD, STD))
             ]
         )
         return trsf(img)
@@ -134,7 +134,7 @@ class HeronDataset(Dataset):
         pathList = df[(df["motion"] == "False") & (df["badImage"] == "False") & (df["grayscale"] == "False") & (~ df["species"].notna())]["ImagePath"].to_list()
         lenTest = int(len(pathList) * 0.9)
         pathList = pathList[:lenTest]
-        return pathList, [0 for _ in range(len(pathList))]
+        return pathList[:50], [0 for _ in range(len(pathList))][:50] #TODO: remove [:50] again
 
     def prepareVal(self, df: pd.DataFrame):
         pathList = df[(df["motion"] == "False") & (df["badImage"] == "False") & (df["grayscale"] == "False") & (~ df["species"].notna())]["ImagePath"].to_list()
