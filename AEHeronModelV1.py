@@ -24,7 +24,7 @@ import numpy as np
 
 class AEHeronModel(pl.LightningModule):
     
-    def __init__(self, learning_rate=1e-4,
+    def __init__(self, learning_rate=1e-1,
         batch_size=32,
         weight_decay=1e-8,
         num_workers_loader=4):
@@ -38,7 +38,7 @@ class AEHeronModel(pl.LightningModule):
         self.model = CAE()
 
         # dataset specific attributes
-        self.imsize = (216, 324)
+        self.imsize = (215, 323)
         self.dims = (3, self.imsize[0], self.imsize[1])
     
     def forward(self, x):
@@ -70,6 +70,16 @@ class AEHeronModel(pl.LightningModule):
         x, y, _ = batch
         # output, mu, log_var = self(x)
         output = self(x)
+
+        unNorm = UnNormalize()
+
+        plt.figure(figsize=(len(x), 50))
+        fig, ax = plt.subplots(figsize=(len(x), 2))
+        ax.set_xticks([]); ax.set_yticks([])
+        xCopy = x.detach().clone()
+        outCopy = output.detach().clone()
+        ax.imshow(make_grid(torch.concat([unNorm(xCopy), unNorm(outCopy)]).cpu(), nrow=len(x)).permute(1, 2, 0))
+        plt.show()
         
         loss = F.mse_loss(output, x)
 
@@ -104,7 +114,13 @@ class AEHeronModel(pl.LightningModule):
         # ax.imshow(make_grid(torch.concat([unNorm(x), unNorm(preds)]).cpu(), nrow=len(x)).permute(1, 2, 0))
         ax.imshow(make_grid(torch.concat([x, preds]).cpu(), nrow=len(x)).permute(1, 2, 0))
         plt.show()
+
+        loss = F.mse_loss(preds, x)
+
+        # self.log("pred_loss", loss, prog_bar=True) 
+        # return loss
         
+        return preds  
         # if len(x.shape) > 4:
         #     x = x[0, ...]
         #     preds = self(x)
@@ -119,7 +135,6 @@ class AEHeronModel(pl.LightningModule):
         #     # probs = torch.softmax(logits, dim=1)
         #     # preds = torch.argmax(probs, dim=1)
 
-        return preds  
     
     # def prepare_data(self) -> None:
     #     self.train_dataset = HeronDataset(set="train", resize_to=self.imsize)

@@ -17,10 +17,10 @@ import lightning.pytorch as pl
 # %%
 # Training
 cae = AEHeronModel(batch_size=32, num_workers_loader=1)
-summary(cae, (3, 324, 216), device="cpu")
+summary(cae, (3, 215, 323), device="cpu")
 
 # %%
-trainer = pl.Trainer(accelerator='cuda', max_epochs=1, devices=[1]) # devices is the index of the gpu
+trainer = pl.Trainer(accelerator='cuda', max_epochs=1) # devices is the index of the gpu
 trainer.fit(cae)
 
 
@@ -28,7 +28,8 @@ trainer.fit(cae)
 # predict some images
 # cae = AEHeronModel.load_from_checkpoint("/data/tim/heronWorkspace/lightning_logs/version_18/checkpoints/epoch=0-step=236.ckpt")
 # trainer = pl.Trainer()
-trainer.predict(cae)
+caeLoaded = AEHeronModel.load_from_checkpoint("/data/tim/heronWorkspace/lightning_logs/version_32/checkpoints/epoch=0-step=2.ckpt")
+trainer.predict(caeLoaded)
 
 # %%
 # play around with different loader settings
