@@ -14,13 +14,29 @@ from torch.utils.data import DataLoader
 from matplotlib import pyplot as plt
 import lightning.pytorch as pl
 
+from lightning.pytorch.callbacks import LearningRateFinder
+
+
+class FineTuneLearningRateFinder(LearningRateFinder):
+    def __init__(self, milestones, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.milestones = milestones
+
+    def on_fit_start(self, *args, **kwargs):
+        return
+
+    def on_train_epoch_start(self, trainer, pl_module):
+        if trainer.current_epoch in self.milestones or trainer.current_epoch == 0:
+            self.lr_find(trainer, pl_module)
+
+
 # %%
 # Training
 cae = AEHeronModel(batch_size=32, num_workers_loader=1)
 summary(cae, (3, 215, 323), device="cpu")
 
 # %%
-trainer = pl.Trainer(accelerator='cuda', max_epochs=1) # devices is the index of the gpu
+trainer = pl.Trainer( accelerator='cuda', max_epochs=1) # devices is the index of the gpu, callbacks=[FineTuneLearningRateFinder(milestones=(5, 10))],
 trainer.fit(cae)
 
 

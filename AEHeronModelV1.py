@@ -43,10 +43,10 @@ class AEHeronModel(pl.LightningModule):
     
     def forward(self, x):
         x = self.model.encoder(x)
-        print(f"enc {x.shape}")
+        # print(f"enc {x.shape}")
         # x = self.model.bottleneck(x)
         x = self.model.decoder(x)
-        print(f"dec {x.shape}")
+        # print(f"dec {x.shape}")
 
         return x
     

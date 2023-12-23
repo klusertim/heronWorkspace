@@ -105,6 +105,8 @@ class HeronDataset(Dataset):
         try:
             with open(f'/data/shared/herons/TinaDubach_data/{fotocode[5:9]}/{fotocode}.JPG', "rb") as f:
                 img = Image.open(f).convert("RGB")
+                # tens = T.ToTensor()(img)
+                # print(f'before: {img.shape} and after: {tens.size()} conversion')
 
             img = self.transform(img)
             return img, self.lbl[idx], idx
@@ -119,10 +121,11 @@ class HeronDataset(Dataset):
     def transform(self, img):
         trsf = T.Compose([
                 #T.RandomHorizontalFlip(p=0.5),
+                # T.ToPILImage(),
                 T.ToTensor(),
                 lambda im : F.crop(im, top=0, left=0, height=2448-190, width=3264),
                 T.Resize([self.imsize[0], self.imsize[1]]),
-                T.Normalize(mean=(MEAN, MEAN, MEAN), std=(STD, STD, STD))
+                T.Normalize(mean=(MEAN, MEAN, MEAN), std=(STD, STD, STD)),
             ]
         )
         return trsf(img)
@@ -157,13 +160,25 @@ class UnNormalize(object):
         self.mean = mean
         self.std = std
 
+    
     def __call__(self, tensor):
         """
         Args:
-            tensor (Tensor): Tensor image of size (C, H, W) to be normalized.
+            tensor (Tensor): Tensor image of size (C, H, W) to be normalized
+            or (B, C, H, W) to be normalized with batch
         Returns:
             Tensor: Normalized image.
         """
+        if tensor.dim() == 4:
+            for t in tensor:
+                self.unNormSingle(t)
+            return tensor
+        elif tensor.dim() == 3:
+            return self.unNormSingle(tensor)
+        else:
+            raise ValueError("Tensor must be 4-dim or 3-dim")
+
+    def unNormSingle(self, tensor):
         for t, m, s in zip(tensor, self.mean, self.std):
             t.mul_(s).add_(m)
             # The normalize code -> t.sub_(m).div_(s)
