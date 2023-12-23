@@ -93,6 +93,8 @@ class HeronDataset(Dataset):
             self.imagePaths, self.lbl = self.prepareTest(df)
         elif set == "val":
             self.imagePaths, self.lbl = self.prepareVal(df)
+        elif set == "onlyPos":
+            self.imagePaths, self.lbl = self.prepareOnlyPos(df)
         else:
             self.imagePaths, self.lbl = self.prepareTrain(df)
 
@@ -124,7 +126,7 @@ class HeronDataset(Dataset):
                 # T.ToPILImage(),
                 T.ToTensor(),
                 lambda im : F.crop(im, top=0, left=0, height=2448-190, width=3264),
-                T.Resize([self.imsize[0], self.imsize[1]]),
+                T.Resize([self.imsize[0], self.imsize[1]], antialias=True),
                 T.Normalize(mean=(MEAN, MEAN, MEAN), std=(STD, STD, STD)),
             ]
         )
@@ -137,14 +139,14 @@ class HeronDataset(Dataset):
         pathList = df[(df["motion"] == "False") & (df["badImage"] == "False") & (df["grayscale"] == "False") & (~ df["species"].notna())]["ImagePath"].to_list()
         lenTest = int(len(pathList) * 0.9)
         pathList = pathList[:lenTest]
-        return pathList[:500], [0 for _ in range(len(pathList))][:500] #TODO: remove [:50] again
+        return pathList[:2000], [0 for _ in range(len(pathList))][:2000] #TODO: remove [:50] again
 
     def prepareVal(self, df: pd.DataFrame):
         pathList = df[(df["motion"] == "False") & (df["badImage"] == "False") & (df["grayscale"] == "False") & (~ df["species"].notna())]["ImagePath"].to_list()
         pathLen = len(pathList)
         lenTest = int(pathLen * 0.9)
         pathList = pathList[lenTest:lenTest+int(pathLen*0.1)]
-        return pathList, [0 for _ in range(len(pathList))]
+        return pathList[:500], [0 for _ in range(len(pathList))][:500]
     
     def prepareTest(self, df: pd.DataFrame):
         pathListNeg = df[(df["motion"] == "False") & (df["badImage"] == "False") & (df["grayscale"] == "False") & (~ df["species"].notna())]["ImagePath"].to_list()
@@ -153,7 +155,11 @@ class HeronDataset(Dataset):
         negPathLen = len(pathListNeg)
         lenTest = int(negPathLen * 0.9)
         pathListNeg = pathListNeg[lenTest+int(lenTest*0.1):]
-        return pathListNeg + pathListPos, [0 for _ in range(len(pathListNeg))] + [1 for _ in range(len(pathListPos))]
+        return (pathListNeg + pathListPos)[:50], ([0 for _ in range(len(pathListNeg))] + [1 for _ in range(len(pathListPos))])[:50]
+    
+    def prepareOnlyPos(self, df: pd.DataFrame):
+        pathListPos = df[(df["motion"] == "False") & (df["badImage"] == "False") & (df["grayscale"] == "False") & (df["species"].notna())]["ImagePath"].to_list()
+        return pathListPos[:50], [1 for _ in range(len(pathListPos))][:50]
 
 class UnNormalize(object):
     def __init__(self, mean = (MEAN, MEAN, MEAN), std = (STD, STD, STD)):

@@ -24,7 +24,7 @@ import numpy as np
 
 class AEHeronModel(pl.LightningModule):
     
-    def __init__(self, learning_rate=1e-1,
+    def __init__(self, learning_rate=0.008317637711026709,
         batch_size=32,
         weight_decay=1e-8,
         num_workers_loader=4):
@@ -71,31 +71,31 @@ class AEHeronModel(pl.LightningModule):
         # output, mu, log_var = self(x)
         output = self(x)
 
-        unNorm = UnNormalize()
-
-        plt.figure(figsize=(len(x), 50))
-        fig, ax = plt.subplots(figsize=(len(x), 2))
-        ax.set_xticks([]); ax.set_yticks([])
-        xCopy = x.detach().clone()
-        outCopy = output.detach().clone()
-        ax.imshow(make_grid(torch.concat([unNorm(xCopy), unNorm(outCopy)]).cpu(), nrow=len(x)).permute(1, 2, 0))
-        plt.show()
+        #plot
+        # unNorm = UnNormalize()
+        # plt.figure(figsize=(len(x), 50))
+        # fig, ax = plt.subplots(figsize=(len(x), 2))
+        # ax.set_xticks([]); ax.set_yticks([])
+        # xCopy = x.detach().clone()
+        # outCopy = output.detach().clone()
+        # ax.imshow(make_grid(torch.concat([unNorm(xCopy), unNorm(outCopy)]).cpu(), nrow=len(x)).permute(1, 2, 0))
+        # plt.show()
         
         loss = F.mse_loss(output, x)
 
-        self.log("trn_loss", loss, prog_bar=True) 
+        self.log("train_loss", loss, prog_bar=True) 
         return loss
 
-    # def validation_step(self, batch, batch_idx, print_log="val"):
-    #     "validation iteration per batch"
-    #     x, y, _ = batch
+    def validation_step(self, batch, batch_idx, print_log="val"):
+        "validation iteration per batch"
+        x, y, _ = batch
 
-    #     output = self(x)
+        output = self(x)
        
-    #     loss = F.mse_loss(output, x)
+        loss = F.mse_loss(output, x)
 
-    #     self.log(f"{print_log}_loss", loss, prog_bar=True)  
-    #     return loss
+        self.log(f"{print_log}_loss", loss, prog_bar=True)  
+        return loss
 
     def test_step(self, batch, batch_idx, print_log="tst"):
         "test iteration per batch"
@@ -112,7 +112,7 @@ class AEHeronModel(pl.LightningModule):
         ax.set_xticks([]); ax.set_yticks([])
         # print(f'shape x: {x.shape}, preds: {preds.shape}')
         # ax.imshow(make_grid(torch.concat([unNorm(x), unNorm(preds)]).cpu(), nrow=len(x)).permute(1, 2, 0))
-        ax.imshow(make_grid(torch.concat([x, preds]).cpu(), nrow=len(x)).permute(1, 2, 0))
+        ax.imshow(make_grid(torch.concat([unNorm(x), unNorm(preds)]).cpu(), nrow=len(x)).permute(1, 2, 0))
         plt.show()
 
         loss = F.mse_loss(preds, x)
@@ -151,6 +151,6 @@ class AEHeronModel(pl.LightningModule):
         return  DataLoader(HeronDataset(set="test", resize_to=self.imsize), batch_size=self.batch_size, shuffle=False, num_workers=self.num_workers_loader)
     
     def predict_dataloader(self):
-        return  DataLoader(HeronDataset(set="train", resize_to=self.imsize), batch_size=self.batch_size, shuffle=False, num_workers=self.num_workers_loader)
+        return  DataLoader(HeronDataset(set="test", resize_to=self.imsize), batch_size=self.batch_size, shuffle=False, num_workers=self.num_workers_loader)
     
     

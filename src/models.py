@@ -34,6 +34,7 @@ class CAE(nn.Module):
 
             #41 x 27
             nn.Flatten(),
+            # nn.Linear(70848, 70848),
 
             #TODO: try lower dim here
 
