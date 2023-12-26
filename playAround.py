@@ -109,3 +109,12 @@ plt.savefig("suggest_loss.jpg")
 caeLoaded = AEHeronModel.load_from_checkpoint("/data/tim/heronWorkspace/logs/basicCAE/version_0/checkpoints/epoch=9-step=630.ckpt")
 trainer = pl.Trainer()
 trainer.predict(caeLoaded)
+
+# %%
+caeLoaded = AEHeronModel.load_from_checkpoint("/data/tim/heronWorkspace/logs/basicCAE/version_0/checkpoints/epoch=9-step=630.ckpt")
+dataLoader = DataLoader(HeronImageLoader.HeronDataset(set="onlyPos", resize_to=(215, 323)), batch_size=16, shuffle=False, num_workers=4)
+trainer = pl.Trainer()
+res = trainer.predict(caeLoaded, dataloaders=dataLoader)
+
+
+# %%

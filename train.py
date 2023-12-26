@@ -13,9 +13,9 @@ import matplotlib.pyplot as plt
 cae = AEHeronModel(batch_size=16)
 summary(cae, (3, 215, 323), device="cpu")
 
-logger=CSVLogger(save_dir="logs/", name="basicCAE")
+logger=CSVLogger(save_dir="logs/", name="basicCAEBigBottleneck")
 callbacks = [ModelCheckpoint(monitor="val_loss", save_top_k=4, mode="min")]
-trainer = pl.Trainer(callbacks=callbacks, logger=logger, accelerator='cuda', max_epochs=10, log_every_n_steps=1) # devices is the index of the gpu, callbacks=[FineTuneLearningRateFinder(milestones=(5, 10))],
+trainer = pl.Trainer(callbacks=callbacks, logger=logger, accelerator='cuda', max_epochs=130, log_every_n_steps=3) # devices is the index of the gpu, callbacks=[FineTuneLearningRateFinder(milestones=(5, 10))],
 trainer.fit(cae)
 
 # Plot

@@ -5,7 +5,7 @@
 
 #! export PYTHONPATH="/data/tim/heronWorkspace/src"
 #%%
-from models import CAE
+from models import CAEBigBottleneck
 
 # %%
 import lightning as pl
@@ -35,7 +35,7 @@ class AEHeronModel(pl.LightningModule):
         self.batch_size = batch_size
         self.num_workers_loader = num_workers_loader
         
-        self.model = CAE()
+        self.model = CAEBigBottleneck()
 
         # dataset specific attributes
         self.imsize = (215, 323)
@@ -108,7 +108,7 @@ class AEHeronModel(pl.LightningModule):
         preds = self(x)
         unNorm = UnNormalize()
         plt.figure(figsize=(len(x), 50))
-        fig, ax = plt.subplots(figsize=(len(x), 2))
+        fig, ax = plt.subplots(figsize=(len(x)*10, 2*10))
         ax.set_xticks([]); ax.set_yticks([])
         # print(f'shape x: {x.shape}, preds: {preds.shape}')
         # ax.imshow(make_grid(torch.concat([unNorm(x), unNorm(preds)]).cpu(), nrow=len(x)).permute(1, 2, 0))
@@ -116,6 +116,15 @@ class AEHeronModel(pl.LightningModule):
         plt.show()
 
         loss = F.mse_loss(preds, x)
+
+        fig, ax = plt.subplots(1, len(x),figsize=(len(x)*10, 10))
+        heatMaps = self.heatMap(x, preds)  #TODO: do heatmap
+        print(heatMaps[0])
+        for i in range(len(x)):
+            ax[i].imshow(heatMaps[i], cmap='hot', interpolation='nearest')
+            # ax[i].text(0.5,-0.2, f'mse loss: {loss[i]:.4f}', size=20, ha="center", transform=ax[i].transAxes)
+        plt.show()
+
 
         # self.log("pred_loss", loss, prog_bar=True) 
         # return loss
@@ -153,4 +162,18 @@ class AEHeronModel(pl.LightningModule):
     def predict_dataloader(self):
         return  DataLoader(HeronDataset(set="test", resize_to=self.imsize), batch_size=self.batch_size, shuffle=False, num_workers=self.num_workers_loader)
     
-    
+    def heatMap(self, before:torch.Tensor, after:torch.Tensor):
+        # heatmap for batch of images
+            heatMaps = []
+            for batchIndex in range(len(before)):
+                stepY = 5
+                stepX = 5
+                heatMap = []
+                for i in range(0, before.shape[-2]-stepY+1, stepY):
+                    row = []
+                    for j in range(0, before.shape[-1]-stepX+1, stepX):
+                        row.append(F.mse_loss(before[batchIndex, :, i:i+stepY, j:j+stepX], after[batchIndex, :, i:i+stepY, j:j+stepX]).item())
+                    heatMap.append(row)
+                heatMaps.append(heatMap)
+            return heatMaps
+        

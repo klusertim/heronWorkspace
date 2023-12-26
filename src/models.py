@@ -1,7 +1,7 @@
 import torch.nn as nn
 
 
-class CAE(nn.Module):
+class CAEBigBottleneck(nn.Module):
     def __init__(self, image_channels=3, h_dim=2048, ldim=8):
         super().__init__()
 
@@ -68,7 +68,7 @@ class CAE(nn.Module):
         )
 
 # model from michele, modified to work with non-cropped images
-class CAE1(nn.Module):
+class CAESmallBottleneck(nn.Module):
     def __init__(self, image_channels=3, h_dim=2048, ldim=8):
         super().__init__()
 

@@ -83,7 +83,7 @@ class HeronDataset(Dataset):
     def __init__(self, set="train", transform=None, resize_to = (216, 324)):
         # TODO: train with more than only one camera
         df1 = pd.read_csv("/data/shared/herons/TinaDubach_data/CameraData_2017_july.csv", encoding='unicode_escape', on_bad_lines="warn", sep=";")
-        df2 = pd.read_csv("imageProps.csv", on_bad_lines="warn")
+        df2 = pd.read_csv("/data/tim/heronWorkspace/ImageData/imagePropsSBU4.csv", on_bad_lines="warn")
         df = pd.merge(df1, df2, left_on="fotocode", how="right", right_on="ImagePath")
 
         self.set = set
@@ -139,14 +139,14 @@ class HeronDataset(Dataset):
         pathList = df[(df["motion"] == "False") & (df["badImage"] == "False") & (df["grayscale"] == "False") & (~ df["species"].notna())]["ImagePath"].to_list()
         lenTest = int(len(pathList) * 0.9)
         pathList = pathList[:lenTest]
-        return pathList[:2000], [0 for _ in range(len(pathList))][:2000] #TODO: remove [:50] again
+        return pathList, [0 for _ in range(len(pathList))] #TODO: remove [:50] again
 
     def prepareVal(self, df: pd.DataFrame):
         pathList = df[(df["motion"] == "False") & (df["badImage"] == "False") & (df["grayscale"] == "False") & (~ df["species"].notna())]["ImagePath"].to_list()
         pathLen = len(pathList)
         lenTest = int(pathLen * 0.9)
         pathList = pathList[lenTest:lenTest+int(pathLen*0.1)]
-        return pathList[:500], [0 for _ in range(len(pathList))][:500]
+        return pathList, [0 for _ in range(len(pathList))]
     
     def prepareTest(self, df: pd.DataFrame):
         pathListNeg = df[(df["motion"] == "False") & (df["badImage"] == "False") & (df["grayscale"] == "False") & (~ df["species"].notna())]["ImagePath"].to_list()
