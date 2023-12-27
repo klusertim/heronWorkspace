@@ -9,13 +9,26 @@ from lightning.pytorch.tuner import Tuner
 import pandas as pd
 from lightning.pytorch.loggers import CSVLogger
 import matplotlib.pyplot as plt
+from models import CAESmallBottleneck
 
-cae = AEHeronModel(batch_size=16)
-summary(cae, (3, 215, 323), device="cpu")
 
-logger=CSVLogger(save_dir="logs/", name="basicCAEBigBottleneck")
-callbacks = [ModelCheckpoint(monitor="val_loss", save_top_k=4, mode="min")]
-trainer = pl.Trainer(callbacks=callbacks, logger=logger, accelerator='cuda', max_epochs=130, log_every_n_steps=3) # devices is the index of the gpu, callbacks=[FineTuneLearningRateFinder(milestones=(5, 10))],
+cae = AEHeronModel(batch_size=16, model=CAESmallBottleneck(), imsize=(216, 324), num_workers_loader=4)
+summary(cae, (3, 216, 324), device="cpu")
+
+# Find learning rate
+trainer = pl.Trainer( accelerator='cuda', max_epochs=150) # devices is the index of the gpu, callbacks=[FineTuneLearningRateFinder(milestones=(5, 10))],
+tuner = Tuner(trainer)
+lr_finder = tuner.lr_find(cae)
+fig = lr_finder.plot(show=True, suggest=True, )
+fig.savefig('lr_finder.jpg')
+print(lr_finder.suggestion())
+
+# Train
+cae = AEHeronModel(batch_size=16, learning_rate=lr_finder.suggestion(), model=CAESmallBottleneck(), imsize=(216, 324), num_workers_loader=4)
+
+logger=CSVLogger(save_dir="logs/", name="basicCAESmallBottleneck")
+callbacks = [ModelCheckpoint(monitor="val_loss", save_top_k=4, mode="min"), ModelCheckpoint(every_n_epochs=40, mode="min")]
+trainer = pl.Trainer(callbacks=callbacks, logger=logger, accelerator='cuda', max_epochs=150, log_every_n_steps=1) # devices is the index of the gpu, callbacks=[FineTuneLearningRateFinder(milestones=(5, 10))],
 trainer.fit(cae)
 
 # Plot

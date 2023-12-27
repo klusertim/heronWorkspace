@@ -1,0 +1,6 @@
+{}
+learning_rate: 0.008317637711026709
+batch_size: 16
+imsize: (215, 323)
+model: basicCAEBigBottleneck
+epochs: 150

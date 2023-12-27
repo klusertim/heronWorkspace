@@ -27,7 +27,9 @@ class AEHeronModel(pl.LightningModule):
     def __init__(self, learning_rate=0.008317637711026709,
         batch_size=32,
         weight_decay=1e-8,
-        num_workers_loader=4):
+        num_workers_loader=4,
+        model=None, 
+        imsize=(216, 324),):
         super(AEHeronModel, self).__init__() # changed from super(AEHeronModel, self).__init__(), seems to be jupyter issue
 
         self.learning_rate = learning_rate
@@ -35,10 +37,10 @@ class AEHeronModel(pl.LightningModule):
         self.batch_size = batch_size
         self.num_workers_loader = num_workers_loader
         
-        self.model = CAEBigBottleneck()
+        self.model = model
 
         # dataset specific attributes
-        self.imsize = (215, 323)
+        self.imsize = imsize 
         self.dims = (3, self.imsize[0], self.imsize[1])
     
     def forward(self, x):
@@ -106,24 +108,27 @@ class AEHeronModel(pl.LightningModule):
         x, y, _ = batch
 
         preds = self(x)
-        unNorm = UnNormalize()
-        plt.figure(figsize=(len(x), 50))
-        fig, ax = plt.subplots(figsize=(len(x)*10, 2*10))
-        ax.set_xticks([]); ax.set_yticks([])
+
+        self.predictBatchVisual(x, preds)
+
+        # unNorm = UnNormalize()
+        # plt.figure(figsize=(len(x), 50))
+        # fig, ax = plt.subplots(figsize=(len(x)*10, 2*10))
+        # ax.set_xticks([]); ax.set_yticks([])
         # print(f'shape x: {x.shape}, preds: {preds.shape}')
         # ax.imshow(make_grid(torch.concat([unNorm(x), unNorm(preds)]).cpu(), nrow=len(x)).permute(1, 2, 0))
-        ax.imshow(make_grid(torch.concat([unNorm(x), unNorm(preds)]).cpu(), nrow=len(x)).permute(1, 2, 0))
-        plt.show()
+        # ax.imshow(make_grid(torch.concat([unNorm(x), unNorm(preds)]).cpu(), nrow=len(x)).permute(1, 2, 0))
+        # plt.show()
 
-        loss = F.mse_loss(preds, x)
+        # loss = F.mse_loss(preds, x)
 
-        fig, ax = plt.subplots(1, len(x),figsize=(len(x)*10, 10))
-        heatMaps = self.heatMap(x, preds)  #TODO: do heatmap
-        print(heatMaps[0])
-        for i in range(len(x)):
-            ax[i].imshow(heatMaps[i], cmap='hot', interpolation='nearest')
-            # ax[i].text(0.5,-0.2, f'mse loss: {loss[i]:.4f}', size=20, ha="center", transform=ax[i].transAxes)
-        plt.show()
+        # fig, ax = plt.subplots(1, len(x),figsize=(len(x)*10, 10))
+        # heatMaps = self.heatMap(x, preds)  #TODO: do heatmap
+        # print(heatMaps[0])
+        # for i in range(len(x)):
+        #     ax[i].imshow(heatMaps[i], cmap='hot', interpolation='nearest')
+        #     # ax[i].text(0.5,-0.2, f'mse loss: {loss[i]:.4f}', size=20, ha="center", transform=ax[i].transAxes)
+        # plt.show()
 
 
         # self.log("pred_loss", loss, prog_bar=True) 
@@ -162,6 +167,8 @@ class AEHeronModel(pl.LightningModule):
     def predict_dataloader(self):
         return  DataLoader(HeronDataset(set="test", resize_to=self.imsize), batch_size=self.batch_size, shuffle=False, num_workers=self.num_workers_loader)
     
+    # HELPER FUNCTIONS
+
     def heatMap(self, before:torch.Tensor, after:torch.Tensor):
         # heatmap for batch of images
             heatMaps = []
@@ -176,4 +183,27 @@ class AEHeronModel(pl.LightningModule):
                     heatMap.append(row)
                 heatMaps.append(heatMap)
             return heatMaps
+    
+    def msePerImage(self, before:torch.Tensor, after:torch.Tensor):
+        lossArr = []
+        for (x, y) in zip(before, after):
+            lossArr.append(F.mse_loss(x, y).item())
+        return lossArr
+    
+    def predictBatchVisual(self, before:torch.Tensor, after:torch.Tensor):
+        unNorm = UnNormalize()
+        fig, ax = plt.subplots(3, len(before), figsize=(len(before)*10, 3*10))
+
+        lossArr = self.msePerImage(before, after)
+        heatMaps = self.heatMap(before, after)
+        for i in range(len(before)):
+            ax[0, i].imshow(unNorm(before[i]).cpu().permute(1, 2, 0))
+            ax[1, i].imshow(unNorm(after[i]).cpu().permute(1, 2, 0))
+            ax[2, i].imshow(heatMaps[i], cmap='hot', interpolation='nearest')
+            ax[2, i].text(0.5,-0.2, f'mse loss: {lossArr[i]:.4f}', size=20, ha="center", transform=ax[2, i].transAxes)
+        
+        plt.axis('off')
+        plt.show()
+
+
         

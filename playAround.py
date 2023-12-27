@@ -106,15 +106,24 @@ df_metrics[["train_loss", "val_loss"]].plot(
 plt.savefig("suggest_loss.jpg")
 
 # %%
+# basic model with 10 epochs and big bottleneck
 caeLoaded = AEHeronModel.load_from_checkpoint("/data/tim/heronWorkspace/logs/basicCAE/version_0/checkpoints/epoch=9-step=630.ckpt")
 trainer = pl.Trainer()
 trainer.predict(caeLoaded)
 
+
 # %%
-caeLoaded = AEHeronModel.load_from_checkpoint("/data/tim/heronWorkspace/logs/basicCAE/version_0/checkpoints/epoch=9-step=630.ckpt")
+# basic model with 10 epochs and big bottleneck
+
+caeLoaded = AEHeronModel.load_from_checkpoint("/data/tim/heronWorkspace/logs/basicCAEBigBottleneck/version_0/checkpoints/epoch=149-step=35400.ckpt")
 dataLoader = DataLoader(HeronImageLoader.HeronDataset(set="onlyPos", resize_to=(215, 323)), batch_size=16, shuffle=False, num_workers=4)
 trainer = pl.Trainer()
 res = trainer.predict(caeLoaded, dataloaders=dataLoader)
 
 
 # %%
+# basic model with 150 epochs and big bottleneck
+caeLoaded = AEHeronModel.load_from_checkpoint("/data/tim/heronWorkspace/logs/basicCAE/version_0/checkpoints/epoch=9-step=630.ckpt")
+dataLoader = DataLoader(HeronImageLoader.HeronDataset(set="onlyPos", resize_to=(215, 323)), batch_size=16, shuffle=False, num_workers=4)
+trainer = pl.Trainer()
+res = trainer.predict(caeLoaded, dataloaders=dataLoader)
