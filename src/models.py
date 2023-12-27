@@ -132,3 +132,14 @@ class CAESmallBottleneck(nn.Module):
             nn.Tanh()
 
         )
+
+class MLPBasic(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+        self.fw = nn.Sequential(
+            nn.Linear(3, 64),
+            nn.ReLU(),
+            nn.Linear(64, 1),
+            nn.Sigmoid(),
+        )

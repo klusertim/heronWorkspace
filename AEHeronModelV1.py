@@ -17,6 +17,7 @@ import torch.nn.functional as F
 import matplotlib.pyplot as plt
 from torchvision.utils import make_grid
 import numpy as np
+from models import CAEBigBottleneck
 
 
 
@@ -28,8 +29,8 @@ class AEHeronModel(pl.LightningModule):
         batch_size=32,
         weight_decay=1e-8,
         num_workers_loader=4,
-        model=None, 
-        imsize=(216, 324),):
+        model=CAEBigBottleneck(), 
+        imsize=(215, 323),): #(216, 324)
         super(AEHeronModel, self).__init__() # changed from super(AEHeronModel, self).__init__(), seems to be jupyter issue
 
         self.learning_rate = learning_rate

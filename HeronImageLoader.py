@@ -95,8 +95,15 @@ class HeronDataset(Dataset):
             self.imagePaths, self.lbl = self.prepareVal(df)
         elif set == "onlyPos":
             self.imagePaths, self.lbl = self.prepareOnlyPos(df)
-        else:
+        elif set == "train":
             self.imagePaths, self.lbl = self.prepareTrain(df)
+        elif set == "trainMLP":
+            self.imagePaths, self.lbl = self.prepareTrainMLP(df)
+        elif set == "valMLP":
+            self.imagePaths, self.lbl = self.prepareValMLP(df)
+        elif set == "testMLP":
+            self.imagePaths, self.lbl = self.prepareTestMLP(df)
+
 
     def __len__(self):
         return len(self.imagePaths)
@@ -151,7 +158,7 @@ class HeronDataset(Dataset):
     def prepareTest(self, df: pd.DataFrame):
         pathListNeg = df[(df["motion"] == "False") & (df["badImage"] == "False") & (df["grayscale"] == "False") & (~ df["species"].notna())]["ImagePath"].to_list()
         # only pos we're sure of
-        pathListPos = df[(df["motion"] == "False") & (df["badImage"] == "False") & (df["grayscale"] == "False") & (df["species"].notna())]["ImagePath"].to_list()
+        pathListPos = df[(df["motion"] == "False") & (df["badImage"] == "False") & (df["grayscale"] == "False") & (df["species"].notna())]["ImagePath"].to_list() #TODO: remove false at positive set
         negPathLen = len(pathListNeg)
         lenTest = int(negPathLen * 0.9)
         pathListNeg = pathListNeg[lenTest+int(lenTest*0.1):]
@@ -160,6 +167,38 @@ class HeronDataset(Dataset):
     def prepareOnlyPos(self, df: pd.DataFrame):
         pathListPos = df[(df["motion"] == "False") & (df["badImage"] == "False") & (df["grayscale"] == "False") & (df["species"].notna())]["ImagePath"].to_list()
         return pathListPos[:50], [1 for _ in range(len(pathListPos))][:50]
+    
+    """Splits for MLP: 0.1, 0.1, 0.8"""
+    def prepareTrainMLP(self, df: pd.DataFrame):
+        pathListNeg, pathListPos, balanceLen = self.balanceDatasets(df)
+
+        pathListNeg = pathListNeg[:int(balanceLen*0.8)]
+        pathListPos = pathListPos[:int(balanceLen*0.8)]
+        return (pathListNeg + pathListPos), ([0 for _ in range(len(pathListNeg))] + [1 for _ in range(len(pathListPos))])
+
+    def prepareTestMLP(self, df: pd.DataFrame):
+        pathListNeg, pathListPos, balanceLen = self.balanceDatasets(df)
+
+        lenTrain = int(balanceLen*0.8)
+        pathListNeg = pathListNeg[lenTrain : lenTrain + int(balanceLen*0.1)]
+        pathListPos = pathListPos[lenTrain : lenTrain + int(balanceLen*0.1)]
+        return (pathListNeg + pathListPos), ([0 for _ in range(len(pathListNeg))] + [1 for _ in range(len(pathListPos))])
+
+    def prepareValMLP(self, df: pd.DataFrame):
+        pathListNeg, pathListPos, balanceLen = self.balanceDatasets(df)
+
+        lenTrain = int(balanceLen*0.8)
+        pathListNeg = pathListNeg[lenTrain + int(balanceLen*0.1) :]
+        pathListPos = pathListPos[lenTrain + int(balanceLen*0.1) :]
+        return (pathListNeg + pathListPos), ([0 for _ in range(len(pathListNeg))] + [1 for _ in range(len(pathListPos))])
+    
+    def balanceDatasets(self, df: pd.DataFrame):
+        pathListNeg = df[(df["motion"] == "False") & (df["badImage"] == "False") & (df["grayscale"] == "False") & (~ df["species"].notna())]["ImagePath"].to_list()
+        # only pos we're sure of
+        pathListPos = df[(df["badImage"] == "False") & (df["grayscale"] == "False") & (df["species"].notna())]["ImagePath"].to_list()
+        balanceLen = min(len(pathListNeg), len(pathListPos))
+        return (pathListNeg[:balanceLen], pathListPos[:balanceLen], balanceLen)
+
 
 class UnNormalize(object):
     def __init__(self, mean = (MEAN, MEAN, MEAN), std = (STD, STD, STD)):

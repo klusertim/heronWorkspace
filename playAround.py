@@ -15,6 +15,8 @@ import lightning.pytorch as pl
 from lightning.pytorch.tuner import Tuner
 import pandas as pd
 from lightning.pytorch.loggers import CSVLogger
+from MLPV1 import MLP
+from models import MLPBasic, CAEBigBottleneck
 
 
 
@@ -127,3 +129,26 @@ caeLoaded = AEHeronModel.load_from_checkpoint("/data/tim/heronWorkspace/logs/bas
 dataLoader = DataLoader(HeronImageLoader.HeronDataset(set="onlyPos", resize_to=(215, 323)), batch_size=16, shuffle=False, num_workers=4)
 trainer = pl.Trainer()
 res = trainer.predict(caeLoaded, dataloaders=dataLoader)
+
+
+# %%
+dataset = HeronImageLoader.HeronDataset(set="testMLP", resize_to=(215, 323))
+print(len(dataset))
+
+# %%
+# train mlp
+caeLoaded = AEHeronModel.load_from_checkpoint("/data/tim/heronWorkspace/logs/basicCAE/version_0/checkpoints/epoch=9-step=630.ckpt")
+caeLoaded.freeze()
+mlp = MLP(mlpModel=MLPBasic(), cae=caeLoaded, batch_size=16, num_workers_loader=4)
+trainer = pl.Trainer(max_epochs=1, accelerator='cuda', log_every_n_steps=1)
+trainer.fit(mlp)
+
+
+# %%
+trainer = pl.Trainer(max_epochs=1, accelerator='cuda', log_every_n_steps=1)
+caeLoaded = AEHeronModel.load_from_checkpoint("/data/tim/heronWorkspace/logs/basicCAE/version_0/checkpoints/epoch=9-step=630.ckpt")
+caeLoaded.freeze()
+mlpLoaded = MLP.load_from_checkpoint("/data/tim/heronWorkspace/lightning_logs/version_44/checkpoints/epoch=0-step=155.ckpt", cae=caeLoaded, mlpModel=MLPBasic())
+trainer.predict(mlpLoaded)
+
+# %%
