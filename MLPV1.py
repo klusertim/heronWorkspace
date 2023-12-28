@@ -61,9 +61,11 @@ class MLP(pl.LightningModule):
         errorVals = self.computeErrorVals(x, output)
 
         pred = self(errorVals).squeeze()
-
+        y = y.type_as(pred)
+        self.accuracy(pred, y)
         loss = F.binary_cross_entropy(pred, y.type_as(pred)) #TODO: evtl change reduction, without logits because sigmoid already applied
-        self.log("train_loss", loss, prog_bar=True) 
+        self.log("train_loss", loss, prog_bar=True, sync_dist=True) 
+        self.log(f"train_acc", self.accuracy, prog_bar=True, sync_dist=True)
         return loss
 
     def validation_step(self, batch, batch_idx, print_log="val"):
@@ -78,8 +80,8 @@ class MLP(pl.LightningModule):
         self.accuracy(pred, y)
         loss = F.binary_cross_entropy(pred, y)
 
-        self.log(f"{print_log}_loss", loss, prog_bar=True)
-        self.log(f"{print_log}_acc", self.accuracy, prog_bar=True)
+        self.log(f"{print_log}_loss", loss, prog_bar=True, sync_dist=True)
+        self.log(f"{print_log}_acc", self.accuracy, prog_bar=True, sync_dist=True)
         return loss
 
     def test_step(self, batch, batch_idx, print_log="tst"):
@@ -110,10 +112,10 @@ class MLP(pl.LightningModule):
         return DataLoader(HeronDataset(set="trainMLP", resize_to=self.imsize), batch_size=self.batch_size, shuffle=True, num_workers=self.num_workers_loader)
     
     def val_dataloader(self) -> EVAL_DATALOADERS:
-        return DataLoader(HeronDataset(set="valMLP", resize_to=self.imsize), batch_size=self.batch_size, shuffle=True, num_workers=self.num_workers_loader)
+        return DataLoader(HeronDataset(set="valMLP", resize_to=self.imsize), batch_size=self.batch_size, shuffle=False, num_workers=self.num_workers_loader)
     
     def test_dataloader(self):
-        return  DataLoader(HeronDataset(set="testMLP", resize_to=self.imsize), batch_size=self.batch_size, shuffle=True, num_workers=self.num_workers_loader)
+        return  DataLoader(HeronDataset(set="testMLP", resize_to=self.imsize), batch_size=self.batch_size, shuffle=False, num_workers=self.num_workers_loader)
     
     def predict_dataloader(self):
         return  DataLoader(HeronDataset(set="testMLP", resize_to=self.imsize), batch_size=self.batch_size, shuffle=True, num_workers=self.num_workers_loader)
@@ -123,10 +125,10 @@ class MLP(pl.LightningModule):
         ssim = StructuralSimilarityIndexMeasure(data_range=1.0, reduction="none").to(input.device)
         ssimArr = ssim(input, output)
 
-        mse = F.mse_loss(input, output, reduce=False)
-        mae = F.l1_loss(input, output, reduce=False)
-        
-        return torch.cat((mse, mae, ssimArr), 1).type_as(input)
+        mse = F.mse_loss(input, output, reduction="none").mean(dim=(1, 2, 3))
+        mae = F.l1_loss(input, output, reduction="none").mean(dim=(1, 2, 3))
+
+        return torch.stack((mse, mae, ssimArr), dim=1).type_as(input)
     
     def heatMap(self, before:torch.Tensor, after:torch.Tensor):
         # heatmap for batch of images
@@ -157,9 +159,10 @@ class MLP(pl.LightningModule):
             ax[2, i].imshow(heatMaps[i], cmap='hot', interpolation='nearest')
             ax[2, i].text(0.5,-0.5, f'mse: {errorVals[i, 0]:.4f}\nmae: {errorVals[i, 1]:.4f}\nssim: {errorVals[i, 2]:.4f}\nprediction: {pred[i]:.4f}\ntrue: {true[i]}', size=20, ha="center", transform=ax[2, i].transAxes)
         
-        for a in ax:
-            a.set_xticks([])
-            a.set_yticks([])
+        for a0 in ax:
+            for a1 in a0:
+                a1.set_xticks([])
+                a1.set_yticks([])
 
         plt.axis('off')
         plt.show()

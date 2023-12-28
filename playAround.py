@@ -17,6 +17,7 @@ import pandas as pd
 from lightning.pytorch.loggers import CSVLogger
 from MLPV1 import MLP
 from models import MLPBasic, CAEBigBottleneck
+import numpy as np
 
 
 
@@ -40,7 +41,7 @@ trainer.fit(cae)
 # %%
 ### Plot
 
-metrics = pd.read_csv(f"{trainer.logger.log_dir}/metrics.csv")
+metrics = pd.read_csv(f"/data/tim/heronWorkspace/logs/basicMLPV1/version_0/metrics.csv")
 
 aggreg_metrics = []
 agg_col = "epoch"
@@ -54,7 +55,7 @@ df_metrics[["train_loss", "val_loss"]].plot(
     grid=True, legend=True, xlabel="Epoch", ylabel="Loss"
 )
 
-plt.savefig("suggest_loss.pdf")
+plt.savefig("loss_over_epochs.jpg")
 
 # df_metrics[["train_acc", "val_acc"]].plot(
 #     grid=True, legend=True, xlabel="Epoch", ylabel="ACC"
@@ -115,7 +116,7 @@ trainer.predict(caeLoaded)
 
 
 # %%
-# basic model with 10 epochs and big bottleneck
+# basic model with 150 epochs and big bottleneck
 
 caeLoaded = AEHeronModel.load_from_checkpoint("/data/tim/heronWorkspace/logs/basicCAEBigBottleneck/version_0/checkpoints/epoch=149-step=35400.ckpt")
 dataLoader = DataLoader(HeronImageLoader.HeronDataset(set="onlyPos", resize_to=(215, 323)), batch_size=16, shuffle=False, num_workers=4)
@@ -124,7 +125,7 @@ res = trainer.predict(caeLoaded, dataloaders=dataLoader)
 
 
 # %%
-# basic model with 150 epochs and big bottleneck
+# basic model with 10 epochs and big bottleneck
 caeLoaded = AEHeronModel.load_from_checkpoint("/data/tim/heronWorkspace/logs/basicCAE/version_0/checkpoints/epoch=9-step=630.ckpt")
 dataLoader = DataLoader(HeronImageLoader.HeronDataset(set="onlyPos", resize_to=(215, 323)), batch_size=16, shuffle=False, num_workers=4)
 trainer = pl.Trainer()
@@ -145,10 +146,56 @@ trainer.fit(mlp)
 
 
 # %%
+# test mlp
 trainer = pl.Trainer(max_epochs=1, accelerator='cuda', log_every_n_steps=1)
 caeLoaded = AEHeronModel.load_from_checkpoint("/data/tim/heronWorkspace/logs/basicCAE/version_0/checkpoints/epoch=9-step=630.ckpt")
 caeLoaded.freeze()
-mlpLoaded = MLP.load_from_checkpoint("/data/tim/heronWorkspace/lightning_logs/version_44/checkpoints/epoch=0-step=155.ckpt", cae=caeLoaded, mlpModel=MLPBasic())
+mlpLoaded = MLP.load_from_checkpoint("/data/tim/heronWorkspace/lightning_logs/version_58/checkpoints/epoch=0-step=155.ckpt", cae=caeLoaded, mlpModel=MLPBasic())
 trainer.predict(mlpLoaded)
+
+# %%
+df1 = pd.read_csv("/data/shared/herons/TinaDubach_data/CameraData_2017_july.csv", encoding='unicode_escape', on_bad_lines="warn", sep=";")
+df2 = pd.read_csv("/data/tim/heronWorkspace/ImageData/imagePropsSBU4.csv", on_bad_lines="warn")
+df = pd.merge(df1, df2, left_on="fotocode", how="right", right_on="ImagePath")
+df.sort_values(by=["ImagePath"], inplace=True)
+df.head(10)
+
+# %%
+# test distance from last prediction to current
+caeLoaded = AEHeronModel.load_from_checkpoint("/data/tim/heronWorkspace/logs/basicCAEBigBottleneck/version_0/checkpoints/epoch=149-step=35400.ckpt")
+caeLoaded.freeze()
+dataLoader = DataLoader(HeronImageLoader.HeronDataset(set="test", resize_to=(215, 323), sorted=True), batch_size=1, shuffle=False, num_workers=4)
+print(len(dataLoader.dataset.imagePaths))
+unnorm = HeronImageLoader.UnNormalize()
+
+lastImd = np.zeros((215, 323))
+for i, img in enumerate(dataLoader):
+    # print(img[0].size())
+    # plt.imshow(unnorm(img[0][0]).permute(1, 2, 0))
+    pred = caeLoaded(img[0].to(caeLoaded.device))
+    img = unnorm(img[0][0]).permute(1, 2, 0).numpy()
+    pred = unnorm(pred[0].cpu()).permute(1, 2, 0).numpy()
+    
+
+    imd = 0.0 + np.sum(img - pred, axis=2)**2
+    # imd = np.linalg.norm(im - x, axis=2)
+
+    # imd = imd / (np.max(imd) - np.min(imd))
+    # imd = (imd - np.min(imd)) / (np.max(imd) - np.min(imd))
+
+    f, a = plt.subplots(1,4, figsize=(40,10))
+    # f.suptitle(fi)
+
+   
+    a[0].imshow(img)
+    a[1].imshow(pred)
+    ma = a[2].imshow(np.abs(imd), cmap="hot")
+    a[3].imshow(np.abs(imd - lastImd), cmap="hot")
+    plt.show()
+
+    lastImd = imd
+    
+    if (i > 200):
+        break
 
 # %%

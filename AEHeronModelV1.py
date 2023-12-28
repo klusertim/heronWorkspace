@@ -86,7 +86,7 @@ class AEHeronModel(pl.LightningModule):
         
         loss = F.mse_loss(output, x)
 
-        self.log("train_loss", loss, prog_bar=True) 
+        self.log("train_loss", loss, prog_bar=True, sync_dist=True) 
         return loss
 
     def validation_step(self, batch, batch_idx, print_log="val"):
@@ -97,7 +97,7 @@ class AEHeronModel(pl.LightningModule):
        
         loss = F.mse_loss(output, x)
 
-        self.log(f"{print_log}_loss", loss, prog_bar=True)  
+        self.log(f"{print_log}_loss", loss, prog_bar=True, sync_dist=True)  
         return loss
 
     def test_step(self, batch, batch_idx, print_log="tst"):

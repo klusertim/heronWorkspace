@@ -80,12 +80,15 @@ class HeronDataset(Dataset):
     ROOT_DIR = '/data/shared/herons/TinaDubach_data'
 
     imsize = (2448-100, 3264) # h x w
-    def __init__(self, set="train", transform=None, resize_to = (216, 324)):
+    def __init__(self, set="train", transform=None, resize_to = (216, 324), sorted=False):
         # TODO: train with more than only one camera
         df1 = pd.read_csv("/data/shared/herons/TinaDubach_data/CameraData_2017_july.csv", encoding='unicode_escape', on_bad_lines="warn", sep=";")
         df2 = pd.read_csv("/data/tim/heronWorkspace/ImageData/imagePropsSBU4.csv", on_bad_lines="warn")
         df = pd.merge(df1, df2, left_on="fotocode", how="right", right_on="ImagePath")
 
+        if sorted:
+            df.sort_values(by=["ImagePath"], inplace=True)
+            
         self.set = set
         self.imsize = resize_to
 
@@ -146,7 +149,7 @@ class HeronDataset(Dataset):
         pathList = df[(df["motion"] == "False") & (df["badImage"] == "False") & (df["grayscale"] == "False") & (~ df["species"].notna())]["ImagePath"].to_list()
         lenTest = int(len(pathList) * 0.9)
         pathList = pathList[:lenTest]
-        return pathList, [0 for _ in range(len(pathList))] #TODO: remove [:50] again
+        return pathList, [0 for _ in range(len(pathList))]
 
     def prepareVal(self, df: pd.DataFrame):
         pathList = df[(df["motion"] == "False") & (df["badImage"] == "False") & (df["grayscale"] == "False") & (~ df["species"].notna())]["ImagePath"].to_list()
@@ -162,7 +165,7 @@ class HeronDataset(Dataset):
         negPathLen = len(pathListNeg)
         lenTest = int(negPathLen * 0.9)
         pathListNeg = pathListNeg[lenTest+int(lenTest*0.1):]
-        return (pathListNeg + pathListPos)[:50], ([0 for _ in range(len(pathListNeg))] + [1 for _ in range(len(pathListPos))])[:50]
+        return (pathListNeg + pathListPos), ([0 for _ in range(len(pathListNeg))] + [1 for _ in range(len(pathListPos))])
     
     def prepareOnlyPos(self, df: pd.DataFrame):
         pathListPos = df[(df["motion"] == "False") & (df["badImage"] == "False") & (df["grayscale"] == "False") & (df["species"].notna())]["ImagePath"].to_list()

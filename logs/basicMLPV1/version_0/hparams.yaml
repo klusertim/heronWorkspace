@@ -1,0 +1,4 @@
+batch_size: 16
+learning_rate: 0.008317637711026709
+num_workers_loader: 4
+weight_decay: 1.0e-08
