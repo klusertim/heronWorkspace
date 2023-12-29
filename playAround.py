@@ -9,7 +9,7 @@ from AEHeronModelV1 import AEHeronModel
 from lightning.pytorch.callbacks import ModelSummary
 from torchsummary import summary
 import HeronImageLoader
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, BatchSampler
 from matplotlib import pyplot as plt
 import lightning.pytorch as pl
 from lightning.pytorch.tuner import Tuner
@@ -18,6 +18,9 @@ from lightning.pytorch.loggers import CSVLogger
 from MLPV1 import MLP
 from models import MLPBasic, CAEBigBottleneck
 import numpy as np
+import torch.nn.functional as F
+import torch
+
 
 
 
@@ -162,40 +165,62 @@ df.head(10)
 
 # %%
 # test distance from last prediction to current
-caeLoaded = AEHeronModel.load_from_checkpoint("/data/tim/heronWorkspace/logs/basicCAEBigBottleneck/version_0/checkpoints/epoch=149-step=35400.ckpt")
+
+def heatMap(before: torch.Tensor, after: torch.Tensor, stepY, stepX):
+    heatMap = []
+    for i in range(0, before.shape[-2]-stepY+1, stepY):
+        row = []
+        for j in range(0, before.shape[-1]-stepX+1, stepX):
+            row.append(F.mse_loss(before[:, i:i+stepY, j:j+stepX], after[:, i:i+stepY, j:j+stepX]).item())
+        heatMap.append(row)
+    return torch.tensor(heatMap).type_as(before)
+
+caeLoaded = AEHeronModel.load_from_checkpoint("/data/tim/heronWorkspace/logs/basicCAE/version_0/checkpoints/epoch=9-step=630.ckpt")
 caeLoaded.freeze()
 dataLoader = DataLoader(HeronImageLoader.HeronDataset(set="test", resize_to=(215, 323), sorted=True), batch_size=1, shuffle=False, num_workers=4)
 print(len(dataLoader.dataset.imagePaths))
 unnorm = HeronImageLoader.UnNormalize()
 
-lastImd = np.zeros((215, 323))
-for i, img in enumerate(dataLoader):
+stepY = 5
+stepX = 5
+
+lastImd = np.zeros((int(215/stepY), int(323/stepX)))
+for i, img in enumerate(list(dataLoader)[200:]):
     # print(img[0].size())
     # plt.imshow(unnorm(img[0][0]).permute(1, 2, 0))
-    pred = caeLoaded(img[0].to(caeLoaded.device))
-    img = unnorm(img[0][0]).permute(1, 2, 0).numpy()
-    pred = unnorm(pred[0].cpu()).permute(1, 2, 0).numpy()
+    img = img[0].to(caeLoaded.device)
+    pred = caeLoaded(img)
+    # img = unnorm(img[0][0]).permute(1, 2, 0).numpy()
+    # pred = unnorm(pred[0].cpu()).permute(1, 2, 0).numpy()
     
+    img, pred = [unnorm(x) for x in [img[0], pred[0]]]
+    imd = heatMap(img, pred, stepY, stepX)
 
-    imd = 0.0 + np.sum(img - pred, axis=2)**2
+    img, pred = [x.permute(1, 2, 0).cpu().numpy() for x in [img, pred]]
+    imd = imd.cpu().numpy()
+    # imd = 0.0 + np.sum(img - pred, axis=2)**2
     # imd = np.linalg.norm(im - x, axis=2)
 
     # imd = imd / (np.max(imd) - np.min(imd))
     # imd = (imd - np.min(imd)) / (np.max(imd) - np.min(imd))
 
-    f, a = plt.subplots(1,4, figsize=(40,10))
+    f, a = plt.subplots(1,5, figsize=(50,10))
     # f.suptitle(fi)
 
    
     a[0].imshow(img)
     a[1].imshow(pred)
-    ma = a[2].imshow(np.abs(imd), cmap="hot")
-    a[3].imshow(np.abs(imd - lastImd), cmap="hot")
+    ma = a[2].imshow(np.abs(imd), cmap="hot", interpolation='none')
+    a[3].imshow(np.abs(imd - lastImd), cmap="hot", interpolation='none')
+
+    diff = imd - lastImd
+    a[4].imshow(np.where(diff < 0, 0, diff), cmap="hot", interpolation='none')
+
     plt.show()
 
     lastImd = imd
     
-    if (i > 200):
+    if (i > 100):
         break
 
 # %%

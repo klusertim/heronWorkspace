@@ -9,6 +9,7 @@ from torchvision.utils import make_grid
 import numpy as np
 from torchmetrics.image import StructuralSimilarityIndexMeasure
 from torchmetrics.classification import Accuracy
+from argparse import ArgumentParser
 
 class MLP(pl.LightningModule):
     
@@ -17,7 +18,7 @@ class MLP(pl.LightningModule):
         weight_decay=1e-8,
         num_workers_loader=4,
         mlpModel=None, 
-        cae=None,):
+        cae=None, resize_Y=0):
         super(MLP, self).__init__() # changed from super(AEHeronModel, self).__init__(), seems to be jupyter issue
 
         # self.save_hyperparameters()
@@ -27,6 +28,7 @@ class MLP(pl.LightningModule):
         self.weight_decay = weight_decay
         self.batch_size = batch_size
         self.num_workers_loader = num_workers_loader
+        self.resize_Y = resize_Y
         
         self.model = mlpModel
         self.cae = cae
@@ -36,6 +38,13 @@ class MLP(pl.LightningModule):
         self.accuracy = Accuracy(task="binary")
         # dataset specific attributes
     
+    @staticmethod
+    def add_model_specific_args(parent_parser):
+        parser = ArgumentParser(parents=[parent_parser], add_help=False)
+        parser.add_argument('--resize_Y', type=float, default=0, help="resize Y axis of image: 0 means no resize, 0.5 means half the size (always to the bottom)")
+        return parser
+    
+
     def forward(self, x):
         x = self.model.fw(x)
         return x
@@ -78,6 +87,8 @@ class MLP(pl.LightningModule):
         pred = self(errorVals).squeeze()
         y = y.type_as(pred)
         self.accuracy(pred, y)
+
+        # print(f"pred: {pred}, y: {y}")
         loss = F.binary_cross_entropy(pred, y)
 
         self.log(f"{print_log}_loss", loss, prog_bar=True, sync_dist=True)
@@ -122,6 +133,10 @@ class MLP(pl.LightningModule):
     
     # HELPER FUNCTIONS
     def computeErrorVals(self, input: torch.Tensor, output: torch.Tensor):
+        input = input[:, :, int(input.shape[2] * self.resize_Y) : , : ]
+        output = output[:, :, int(output.shape[2] * self.resize_Y) : , : ]
+
+
         ssim = StructuralSimilarityIndexMeasure(data_range=1.0, reduction="none").to(input.device)
         ssimArr = ssim(input, output)
 
