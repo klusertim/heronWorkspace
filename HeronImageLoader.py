@@ -146,20 +146,20 @@ class HeronDataset(Dataset):
     splits: 0.8 train, 0.1 val, 0.1 test, where test contains anomalous frames as well
     """
     def prepareTrain(self, df: pd.DataFrame):
-        pathList = df[(df["motion"] == "False") & (df["badImage"] == "False") & (df["grayscale"] == "False") & (~ df["species"].notna())]["ImagePath"].to_list()
+        pathList = df[(df["motion"] == "False") & (df["badImage"] == "False") & (df["grayscale"] == "False") & ( df["species"].isna())]["ImagePath"].to_list()
         lenTest = int(len(pathList) * 0.9)
         pathList = pathList[:lenTest]
         return pathList, [0 for _ in range(len(pathList))]
 
     def prepareVal(self, df: pd.DataFrame):
-        pathList = df[(df["motion"] == "False") & (df["badImage"] == "False") & (df["grayscale"] == "False") & (~ df["species"].notna())]["ImagePath"].to_list()
+        pathList = df[(df["motion"] == "False") & (df["badImage"] == "False") & (df["grayscale"] == "False") & (df["species"].isna())]["ImagePath"].to_list()
         pathLen = len(pathList)
         lenTest = int(pathLen * 0.9)
         pathList = pathList[lenTest:lenTest+int(pathLen*0.1)]
         return pathList, [0 for _ in range(len(pathList))]
     
     def prepareTest(self, df: pd.DataFrame):
-        pathListNeg = df[(df["motion"] == "False") & (df["badImage"] == "False") & (df["grayscale"] == "False") & (~ df["species"].notna())]["ImagePath"].to_list()
+        pathListNeg = df[(df["motion"] == "False") & (df["badImage"] == "False") & (df["grayscale"] == "False") & (df["species"].isna())]["ImagePath"].to_list()
         # only pos we're sure of
         pathListPos = df[(df["motion"] == "False") & (df["badImage"] == "False") & (df["grayscale"] == "False") & (df["species"].notna())]["ImagePath"].to_list() #TODO: remove false at positive set
         negPathLen = len(pathListNeg)
@@ -196,7 +196,7 @@ class HeronDataset(Dataset):
         return (pathListNeg + pathListPos), ([0 for _ in range(len(pathListNeg))] + [1 for _ in range(len(pathListPos))])
     
     def balanceDatasets(self, df: pd.DataFrame):
-        pathListNeg = df[(df["motion"] == "False") & (df["badImage"] == "False") & (df["grayscale"] == "False") & (~ df["species"].notna())]["ImagePath"].to_list()
+        pathListNeg = df[(df["motion"] == "False") & (df["badImage"] == "False") & (df["grayscale"] == "False") & (df["species"].isna())]["ImagePath"].to_list()
         # only pos we're sure of
         pathListPos = df[(df["badImage"] == "False") & (df["grayscale"] == "False") & (df["species"].notna())]["ImagePath"].to_list()
         balanceLen = min(len(pathListNeg), len(pathListPos))
@@ -241,13 +241,13 @@ Try out for test/training set
 # #print(df1.head(10))
 # #print(df2.head(10))
 # df = pd.merge(df1, df2, left_on="fotocode", how="right", right_on="ImagePath")
-# #df = df[(df["motion"] == "False") & (df["badImage"] == "False") & (df["grayscale"] == "False") & (~ df["species"].notna())]
+# #df = df[(df["motion"] == "False") & (df["badImage"] == "False") & (df["grayscale"] == "False") & (df["species"].isna())]
 # df["ImagePath"].unique().size
 # #df.head(10)
 # df[(df["motion"] == "False") & (df["badImage"] == "False") & (df["grayscale"] == "False") & ( df["species"].notna())]["ImagePath"].unique().size
 
 # # %%
-# for i, path in enumerate(df[(df["motion"] == "True") & (df["badImage"] == "False") & (df["grayscale"] == "False") & (~ df["species"].notna())]["ImagePath"]):
+# for i, path in enumerate(df[(df["motion"] == "True") & (df["badImage"] == "False") & (df["grayscale"] == "False") & (df["species"].isna())]["ImagePath"]):
 #     img = Image.open(f'/data/shared/herons/TinaDubach_data/{path[5:9]}/{path}.JPG')
 #     plt.imshow(img)
 #     plt.show()
