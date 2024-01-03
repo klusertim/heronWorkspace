@@ -67,6 +67,11 @@ class AEHeronModel(pl.LightningModule):
         )
         return [optimizer], [lr_scheduler]
     
+    def loss_fn(self, output, target):
+        loss = F.mse_loss(output, target, reduction='none')
+        loss = loss.sum(dim=[1,2,3]).mean(dim=[0])
+        return loss
+    
     def training_step(self, batch, batch_idx):
         "training iteration per batch"
 
@@ -84,7 +89,7 @@ class AEHeronModel(pl.LightningModule):
         # ax.imshow(make_grid(torch.concat([unNorm(xCopy), unNorm(outCopy)]).cpu(), nrow=len(x)).permute(1, 2, 0))
         # plt.show()
         
-        loss = F.mse_loss(output, x)
+        loss = self.loss_fn(output, x)
 
         self.log("train_loss", loss, prog_bar=True, sync_dist=True) 
         return loss
@@ -95,7 +100,7 @@ class AEHeronModel(pl.LightningModule):
 
         output = self(x)
        
-        loss = F.mse_loss(output, x)
+        loss = self.loss_fn(output, x)
 
         self.log(f"{print_log}_loss", loss, prog_bar=True, sync_dist=True)  
         return loss
