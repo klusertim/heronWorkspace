@@ -9,69 +9,76 @@ import torch
 import glob
 import torchvision.transforms as T
 import torchvision.transforms.functional as F
+from classifyMotionGray import ClassifyMotionGray
 
-# %%
-class rawHeronDataset(Dataset):
+class HeronDatasetCAE(Dataset):
     ROOT_DIR = '/data/shared/herons/TinaDubach_data'
 
-    def __init__(self, folder="all", transform=None):
+    imsize = (2448-100, 3264) # h x w
+    def __init__(self, set="train", resize_to = (216, 324), cameras = None, transform=None):
         
-        self.folder = folder
-       
-        self.cropImsize = 85
-        self.rawImsize = (2448, 3264) # h x w
+        # load data
+        for i, cam in enumerate(cameras):
+            try:
+                dfNew = pd.read_csv(f"MotionGrayClassification/classifiedMotionGray{cam}.csv")
+            except FileNotFoundError:
+                print(f"File not found: MotionGrayClassification/classifiedMotionGray{cam}.csv")
+                ClassifyMotionGray().classify([cam])
+                dfNew = pd.read_csv(f"MotionGrayClassification/classifiedMotionGray{cam}.csv")
+                continue
+            if i == 0:
+                df = dfNew
+            else:
+                df = pd.concat([df, dfNew])
+            
+        self.set = set
+        self.imsize = resize_to
 
-        self.imagePaths = self.prepareData()
+        df = df[(df["grayscale"] == "False") & (df["motion"] == "False") & (df["badImage"] == "False")]
+        df = df["ImagePath"].unique()
+        train=df.sample(frac=0.8,random_state=200)
+        testAndVal=df.drop(train.index)
+        test=testAndVal.sample(frac=0.5,random_state=200)
+        val=testAndVal.drop(test.index)
+
+        if set == "test":
+            self.imagePaths, self.lbl = test.to_list(), [0 for _ in range(len(test))]
+        elif set == "val":
+            self.imagePaths, self.lbl = val.to_list(), [0 for _ in range(len(val))]
+        elif set == "train":
+            self.imagePaths, self.lbl = train.to_list(), [0 for _ in range(len(train))]
+
 
     def __len__(self):
         return len(self.imagePaths)
 
     def __getitem__(self, idx):
-        # print(idx)
-        # print(self.img_paths[idx])
-      
-        pathLabel = self.imagePaths[idx] #(imagePaths, classIndex) 
-        fileName = os.path.splitext(os.path.basename(pathLabel[0]))[0]   
+        
+        fotocode = self.imagePaths[idx]
         try:
-            with open(pathLabel[0], "rb") as f:
+            with open(f'/data/shared/herons/TinaDubach_data/{fotocode[5:9]}/{fotocode}.JPG', "rb") as f:
                 img = Image.open(f).convert("RGB")
-           
-            cropImg = self.transformCrop(img)
-            img = self.transformTensor(img)
-            return img, cropImg, pathLabel[1], fileName, False
+                
+
+            img = self.transform(img)
+            return img, self.lbl[idx], idx
         except OSError:
-            # print(f"We had an error loading the image: {pathLabel[0]}")
+            print(f"Error occured loading the image: {fotocode}")
             return (
-                torch.zeros((3, self.rawImsize[0], self.rawImsize[1])),
-                torch.zeros((3, self.cropImsize, self.cropImsize)),
-                pathLabel[1],
-                fileName,
-                True
+                torch.zeros((3, self.imsize[0], self.imsize[1])),
+                0,
+                idx
             )
     
-    def transformCrop(self, img):
-        trsf = T.Compose([T.ToTensor(), lambda im : F.crop(im, top=im.size(dim=1)-self.cropImsize, left=290, height=self.cropImsize, width=self.cropImsize)])
+    def transform(self, img):
+        trsf = T.Compose([
+                T.ToTensor(),
+                lambda im : F.crop(im, top=0, left=0, height=2448-190, width=3264),
+                T.Resize([self.imsize[0], self.imsize[1]], antialias=True),
+                T.Normalize(mean=(MEAN, MEAN, MEAN), std=(STD, STD, STD)),
+            ]
+        )
         return trsf(img)
-    
-    def transformTensor(self, img):
-        trsf = T.ToTensor()
-        return trsf(img)
-
-    def prepareData(self):
-        # Make paths
-        files = os.listdir(self.ROOT_DIR)
-        folders = [f for f in files if os.path.isdir(self.ROOT_DIR+'/'+f)]
-        folders = [(f, i) for i, f in enumerate(folders)]
-        # TODO: set index of folders
-        if self.folder != "all":
-            folders = [(folder, i) for (folder, i) in folders if folder == self.folder]
-        
-        imagePaths = [(glob.glob(os.path.abspath(os.path.join(self.ROOT_DIR, item[0], "*.JPG"))), item[1]) for item in folders]
-        imagePaths = [(filePath, item[1]) for item in imagePaths for filePath in item[0]]
-        #print(f'Debug: imagePaths: {imagePaths[100000]}')
-
-        return imagePaths
-
 
 MEAN = 0.5
 STD = 0.5

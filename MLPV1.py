@@ -72,7 +72,7 @@ class MLP(pl.LightningModule):
         pred = self(errorVals).squeeze()
         y = y.type_as(pred)
         self.accuracy(pred, y)
-        loss = F.binary_cross_entropy(pred, y.type_as(pred)) #TODO: evtl change reduction, without logits because sigmoid already applied
+        loss = F.binary_cross_entropy(pred, y) #TODO: evtl change reduction, without logits because sigmoid already applied
         self.log("train_loss", loss, prog_bar=True, sync_dist=True) 
         self.log(f"train_acc", self.accuracy, prog_bar=True, sync_dist=True)
         return loss
@@ -136,6 +136,9 @@ class MLP(pl.LightningModule):
         input = input[:, :, int(input.shape[2] * self.resize_Y) : , : ]
         output = output[:, :, int(output.shape[2] * self.resize_Y) : , : ]
 
+        plt.imshow(UnNormalize()(input[0].cpu()).permute(1, 2, 0))
+        plt.show()
+        
 
         ssim = StructuralSimilarityIndexMeasure(data_range=1.0, reduction="none").to(input.device)
         ssimArr = ssim(input, output)

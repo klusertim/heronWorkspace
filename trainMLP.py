@@ -10,11 +10,11 @@ import pandas as pd
 from lightning.pytorch.loggers import CSVLogger
 import matplotlib.pyplot as plt
 from MLPV1 import MLP
-from models import MLPBasic, CAEBigBottleneck
+from models import MLPBasic, CAEBigBottleneck, CAESmallBottleneckWithLinear
 from argparse import ArgumentParser
 
 # load cae
-caeLoaded = AEHeronModel.load_from_checkpoint("/data/tim/heronWorkspace/logs/basicCAEBigBottleneck/version_0/checkpoints/epoch=149-step=35400.ckpt", model=CAEBigBottleneck(), imsize=(215, 323))
+caeLoaded = AEHeronModel.load_from_checkpoint("/data/tim/heronWorkspace/logs/basicCAESmallBottleneckLinearLayer/version_0/checkpoints/epoch=23-step=5664.ckpt", model=CAESmallBottleneckWithLinear(), imsize=(216, 324))
 caeLoaded.freeze()
 
 # arguments
