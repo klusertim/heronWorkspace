@@ -134,7 +134,7 @@ class CAESmallBottleneck(nn.Module):
 
 # model from michele, modified to work with non-cropped images
 class CAESmallBottleneckWithLinear(nn.Module):
-    def __init__(self, image_channels=3, h_dim=2048, ldim=8, latent_dim=256):
+    def __init__(self, image_channels=3, ldim=8, latent_dim=256):
         super().__init__()
 
         self.encoder = nn.Sequential(         
@@ -202,8 +202,17 @@ class MLPBasic(nn.Module):
         super().__init__()
 
         self.fw = nn.Sequential(
-            nn.Linear(3, 64),
+            nn.Linear(3, 10),
             nn.ReLU(),
-            nn.Linear(64, 1),
-            nn.Sigmoid(),
+            nn.Linear(10, 1),
+        )
+
+class MLPBasicHeatMap(nn.Module):
+    def __init__(self, num_features=3):
+        super().__init__()
+
+        self.fw = nn.Sequential(
+            nn.Linear(num_features, 200),
+            nn.ReLU(),
+            nn.Linear(200, 1),
         )

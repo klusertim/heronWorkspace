@@ -99,6 +99,7 @@ class HeronDataset(Dataset):
         self.set = set
         self.imsize = resize_to
 
+        #TODO: this is not random
         if set == "test":
             self.imagePaths, self.lbl = self.prepareTest(df)
         elif set == "val":

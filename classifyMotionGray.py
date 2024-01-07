@@ -64,9 +64,10 @@ class ClassifyMotionGray():
             for rawImg, cropImg, _, path, badImage in tqdm(loader):
                 grayScale = self.decideGrayscale(rawImg)
                 isM = self.decideM(cropImg)
-                cam = [folderName] * batch_size
+                cam = [folderName] * len(isM)
                 props = np.stack((cam, path, badImage, isM, grayScale), -1)
-                imagePropsList = np.concatenate((imagePropsList, props))            
+                imagePropsList = np.concatenate((imagePropsList, props))
+
 
 
             """
