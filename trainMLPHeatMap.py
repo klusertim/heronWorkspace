@@ -25,7 +25,7 @@ args = parser.parse_args()
 
 print(args)
 
-mlp = MLPMSEHeatMap(mlpModel=MLPBasicHeatMap(num_features=6), num_features_X=3, num_features_Y=2, cae=caeLoaded, batch_size=16, num_workers_loader=4, resize_Y=args.resize_Y)
+# mlp = MLPMSEHeatMap(mlpModel=MLPBasicHeatMap(num_features=6), num_features_X=3, num_features_Y=2, cae=caeLoaded, batch_size=16, num_workers_loader=4, resize_Y=args.resize_Y)
 
 # summary(mlp, (1, 6), device="cpu")
 
@@ -37,12 +37,12 @@ mlp = MLPMSEHeatMap(mlpModel=MLPBasicHeatMap(num_features=6), num_features_X=3, 
 # fig.savefig('lr_finder.jpg')
 
 # Train
-mlp = MLPMSEHeatMap(learning_rate=0.1, mlpModel=MLPBasicHeatMap(num_features=6), num_features_X=3, num_features_Y=2, cae=caeLoaded, batch_size=16, num_workers_loader=4, resize_Y=args.resize_Y)
+mlp = MLPMSEHeatMap(learning_rate=0.008, mlpModel=MLPBasicHeatMap(num_features=600), num_features_X=30, num_features_Y=20, cae=caeLoaded, batch_size=8, num_workers_loader=4, resize_Y=args.resize_Y)
 
 logger=CSVLogger(save_dir="logs/", name="basicMLPHeatMapValidatedSBU4")
 # earlyStopping = EarlyStopping(monitor="val_acc", min_delta=0.001, patience=5, verbose=False, mode="min")
-callbacks = [ModelCheckpoint(monitor="val_acc", save_top_k=4, mode="min"), ModelCheckpoint(monitor="val_acc", every_n_epochs=20, mode="min")]
-trainer = pl.Trainer(callbacks=callbacks, logger=logger, accelerator='cuda', max_epochs=25, log_every_n_steps=1) # devices is the index of the gpu, callbacks=[FineTuneLearningRateFinder(milestones=(5, 10))],
+callbacks = [ModelCheckpoint(monitor="val_acc", save_top_k=4, mode="max"), ModelCheckpoint(monitor="val_acc", every_n_epochs=20, mode="min")]
+trainer = pl.Trainer(callbacks=callbacks, logger=logger, accelerator='cuda', max_epochs=70, log_every_n_steps=1) # devices is the index of the gpu, callbacks=[FineTuneLearningRateFinder(milestones=(5, 10))],
 trainer.fit(mlp)
 
 # Plot

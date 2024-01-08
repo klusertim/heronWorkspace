@@ -237,7 +237,7 @@ class MLPMSEHeatMap(pl.LightningModule):
         errorVals = self.heatMap(x, output, stepX=self.stepX, stepY=self.stepY).flatten(start_dim=1)
 
         # print(errorVals)
-        pred = self(errorVals).squeeze()
+        pred = self(errorVals).squeeze(1)
         y = y.type_as(pred)
         self.accuracy(torch.sigmoid(pred), y)
 
@@ -256,8 +256,10 @@ class MLPMSEHeatMap(pl.LightningModule):
         errorVals = self.heatMap(x, output, stepX=self.stepX, stepY=self.stepY).flatten(start_dim=1)
 
         # print(errorVals)
-        pred = self(errorVals).squeeze()
-        # print(f'pred: {pred}')
+        pred = self(errorVals).squeeze(1)
+    
+        # print(f'pred: {torch.sigmoid(pred)}')
+        # print(f'y: {y}')
         y = y.type_as(pred)
         self.accuracy(torch.sigmoid(pred), y)
 
@@ -279,7 +281,7 @@ class MLPMSEHeatMap(pl.LightningModule):
 
         errorVals = self.heatMap(x, output, stepX=self.stepX, stepY=self.stepY).flatten(start_dim=1)
 
-        pred = self(errorVals).squeeze()
+        pred = self(errorVals).squeeze(1)
 
         self.predictBatchVisual(x, output, errorVals, torch.sigmoid(pred), y)
 
