@@ -10,12 +10,18 @@ import glob
 import torchvision.transforms as T
 import torchvision.transforms.functional as F
 from classifyMotionGray import ClassifyMotionGray
+from sklearn.model_selection import train_test_split
 
 class HeronDatasetCAE(Dataset):
     ROOT_DIR = '/data/shared/herons/TinaDubach_data'
 
     imsize = (2448-100, 3264) # h x w
-    def __init__(self, set="train", resize_to = (216, 324), cameras = None, transform=None):
+    def __init__(self, set="train", resize_to = (216, 324), cameras = None, transforms=None):
+        
+        self.set = set
+        self.imsize = resize_to
+        self.transforms = transforms
+
         
         # load data
         for i, cam in enumerate(cameras):
@@ -31,22 +37,19 @@ class HeronDatasetCAE(Dataset):
             else:
                 df = pd.concat([df, dfNew])
             
-        self.set = set
-        self.imsize = resize_to
 
-        df = df[(df["grayscale"] == "False") & (df["motion"] == "False") & (df["badImage"] == "False")]
-        df = df["ImagePath"].unique()
-        train=df.sample(frac=0.8,random_state=200)
-        testAndVal=df.drop(train.index)
-        test=testAndVal.sample(frac=0.5,random_state=200)
-        val=testAndVal.drop(test.index)
+        df = df[(df["grayscale"] == False) & (df["motion"] == False) & (df["badImage"] == False)]
+        allPaths = df["ImagePath"].unique().tolist()
+
+        trainSet, testSet = train_test_split(allPaths, test_size=0.15, random_state=1)
+        trainSet, valSet = train_test_split(trainSet, test_size=0.2, random_state=1)
 
         if set == "test":
-            self.imagePaths, self.lbl = test.to_list(), [0 for _ in range(len(test))]
+            self.imagePaths, self.lbl = testSet, [0 for _ in range(len(testSet))]
         elif set == "val":
-            self.imagePaths, self.lbl = val.to_list(), [0 for _ in range(len(val))]
+            self.imagePaths, self.lbl = valSet, [0 for _ in range(len(valSet))]
         elif set == "train":
-            self.imagePaths, self.lbl = train.to_list(), [0 for _ in range(len(train))]
+            self.imagePaths, self.lbl = trainSet, [0 for _ in range(len(trainSet))]
 
 
     def __len__(self):
@@ -71,6 +74,8 @@ class HeronDatasetCAE(Dataset):
             )
     
     def transform(self, img):
+        if self.transforms is not None:
+            return self.transforms(img)
         trsf = T.Compose([
                 T.ToTensor(),
                 lambda im : F.crop(im, top=0, left=0, height=2448-190, width=3264),
@@ -82,6 +87,9 @@ class HeronDatasetCAE(Dataset):
 
 MEAN = 0.5
 STD = 0.5
+
+
+
 
 class HeronDataset(Dataset):
     ROOT_DIR = '/data/shared/herons/TinaDubach_data'

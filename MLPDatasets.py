@@ -153,6 +153,8 @@ class MLPDatasetThreeConsecutive(Dataset):
         
         df = df[(df["grayscale"] == False) & (df["badImage"] == False)].sort_values(by=['ImagePath'])
 
+        #TODO: evtl filter out non-unique ImagePaths
+
         sortedPaths = df["ImagePath"].tolist()
         motions = df["motion"].astype(int).tolist()
         features = []
