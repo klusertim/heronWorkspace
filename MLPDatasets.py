@@ -123,7 +123,7 @@ class MLPDatasetThreeConsecutive(Dataset):
                     i = Image.open(f).convert("RGB")
                     i = self.transform(i)
                     
-            return (prevImg, img, nextImg), self.lbl[idx], idx
+            return (prevImg, img, nextImg), lbl, idx
         except OSError:
             print(f"Error occured loading the image: {img}")
             zero = torch.zeros((3, self.imsize[0], self.imsize[1]))

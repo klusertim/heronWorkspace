@@ -31,10 +31,13 @@ class CAEHeron(pl.LightningModule):
         batch_size=32,
         weight_decay=1e-8,
         num_workers_loader=4,
-        model=CAEV1(),
-        cameras = ["GBU3"], 
-        transforms=None):
-        
+        model=CAEV1,
+        cameras = ["GBU3"],
+        bottleneck=256,
+        ldim=8,
+        transforms=None, 
+        gammaScheduler=0.1):
+
         super(CAEHeron, self).__init__() # changed from super(AEHeronModel, self).__init__(), seems to be jupyter issue
 
         self.learning_rate = learning_rate
@@ -43,8 +46,11 @@ class CAEHeron(pl.LightningModule):
         self.num_workers_loader = num_workers_loader
         self.cameras = cameras
         self.transforms = transforms
+        self.bottleneck = bottleneck
+        self.ldim = ldim
+        self.gammaScheduler = gammaScheduler
         
-        self.model = model
+        self.model = model(ldim=self.ldim, bottleneck=self.bottleneck)
 
         # dataset specific attributes
         self.imsize = model.imsize 
@@ -67,7 +73,7 @@ class CAEHeron(pl.LightningModule):
         )
        
         lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(
-            optimizer, milestones=[30, 60, 100], gamma=0.1 
+            optimizer, milestones=[30, 60, 100], gamma=self.gammaScheduler
         )
         return [optimizer], [lr_scheduler]
        
