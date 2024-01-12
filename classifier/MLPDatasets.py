@@ -9,7 +9,7 @@ import torch
 import glob
 import torchvision.transforms as T
 import torchvision.transforms.functional as F
-from classifyMotionGray import ClassifyMotionGray
+from heronWorkspace.dataPreprocessing.classifyMotionGray import ClassifyMotionGray
 import random
 from sklearn.model_selection import train_test_split
 
@@ -117,13 +117,8 @@ class MLPDatasetThreeConsecutive(Dataset):
         
         imgs, lbl = self.imagePaths[idx]
         try:
-            prevImg, img, nextImg = imgs
-            for i in [prevImg, img, nextImg]:
-                with open(f'/data/shared/herons/TinaDubach_data/{i[5:9]}/{i}.JPG', "rb") as f:
-                    i = Image.open(f).convert("RGB")
-                    i = self.transform(i)
-                    
-            return (prevImg, img, nextImg), lbl, idx
+            prevImg, img, nextImg = [self.loadAndTransform(x) for x in imgs]     
+            return [prevImg, img, nextImg], lbl, idx
         except OSError:
             print(f"Error occured loading the image: {img}")
             zero = torch.zeros((3, self.imsize[0], self.imsize[1]))
@@ -144,6 +139,12 @@ class MLPDatasetThreeConsecutive(Dataset):
         return trsf(img)
     
     ### HELPER FUNCTIONS ###
+
+    def loadAndTransform(self, path):
+        with open(f'/data/shared/herons/TinaDubach_data/{path[5:9]}/{path}.JPG', "rb") as f:
+            img = Image.open(f).convert("RGB")
+            img = self.transform(img)
+        return img
 
     def generateFeaturesBalanced(self, camera : str):
         try:

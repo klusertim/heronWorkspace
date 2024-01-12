@@ -5,7 +5,7 @@
 import sys
 sys.path.append("/data/tim/heronWorkspace/src")
 
-from AEHeronModelV1 import AEHeronModel
+from heronWorkspace.AE.AEHeronModelV1 import AEHeronModel
 from lightning.pytorch.callbacks import ModelSummary
 from torchsummary import summary
 import HeronImageLoader
@@ -15,7 +15,7 @@ import lightning.pytorch as pl
 from lightning.pytorch.tuner import Tuner
 import pandas as pd
 from lightning.pytorch.loggers import CSVLogger
-from MLPV1 import MLP
+from heronWorkspace.classifier.MLPV1 import MLP
 from models import MLPBasic, CAEBigBottleneck
 import numpy as np
 import torch.nn.functional as F

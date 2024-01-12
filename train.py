@@ -1,7 +1,7 @@
 import sys
 sys.path.append("/data/tim/heronWorkspace/src")
 
-from AEHeronModelV1 import AEHeronModel
+from heronWorkspace.AE.AEHeronModelV1 import AEHeronModel
 from lightning.pytorch.callbacks import ModelCheckpoint
 from torchsummary import summary
 import lightning.pytorch as pl

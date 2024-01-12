@@ -1,6 +1,66 @@
 import torch.nn as nn
 
+#### Models for AEHeronModelV2 ####
 
+class CAEV1(nn.Module):
+    imsize = (216, 324)
+    def __init__(self, image_channels=3, ldim=8, bottleneck=256):
+        super().__init__()
+
+        
+
+        self.encoder = nn.Sequential(         
+
+            #216 x 324
+            nn.Conv2d(image_channels, ldim, 5, stride=3, padding=2, bias=False),
+            nn.BatchNorm2d(ldim),
+            nn.LeakyReLU(True),
+
+            #72 x 108
+            nn.Conv2d(ldim, ldim * 2, 5, stride=3, padding=2, bias=False),
+            nn.BatchNorm2d(2*ldim),
+            nn.LeakyReLU(True),
+
+            #24 x 36
+            nn.Conv2d(ldim * 2, ldim * 4, 5, stride=3, padding=2, bias=False),
+            nn.BatchNorm2d(4*ldim),
+            nn.LeakyReLU(True),
+
+            #8 x 12
+            nn.Flatten(),
+
+            nn.Linear(12 * 8 * ldim * 4, bottleneck),
+        
+        )
+
+
+        nonlin = nn.ReLU
+        self.decoder = nn.Sequential(
+            nn.Linear(bottleneck, 12 * 8 * ldim * 4),
+            nn.Unflatten(1, (ldim * 4, 8, 12)),
+            # 8 x 12
+
+            nn.ConvTranspose2d(ldim * 4, ldim * 2, 5, stride=3, padding=(1, 1), bias=False),
+            nn.BatchNorm2d(ldim * 2),
+            nonlin(True),
+            #24 x 36
+            
+            nn.ConvTranspose2d(ldim * 2, ldim, 5, stride=3, padding=1, bias=False),
+            nn.BatchNorm2d(ldim),
+            nonlin(True),
+            #72 x 108
+
+            nn.ConvTranspose2d(ldim, image_channels, 5, stride=3, padding=1, bias=False),
+            #216 x 324
+
+            nn.Tanh()
+        )
+
+
+
+
+
+#### Models for AEHeronModelV1 ####
 class CAEBigBottleneck(nn.Module):
     def __init__(self, image_channels=3, h_dim=2048, ldim=8):
         super().__init__()
@@ -197,6 +257,10 @@ class CAESmallBottleneckWithLinear(nn.Module):
             nn.Tanh()
 
         )
+
+
+#### MLP Models ####
+        
 class MLPBasic(nn.Module):
     def __init__(self):
         super().__init__()
