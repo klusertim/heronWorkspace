@@ -3,7 +3,7 @@
 # %autoreload 2
 
 # %%
-from heronWorkspace.dataPreprocessing.classifyMotionGrayDataset import MotionGrayHeronDataset
+from classifyMotionGrayDataset import MotionGrayHeronDataset
 import numpy as np
 # import matplotlib.pyplot as plt
 import torch

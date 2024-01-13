@@ -9,7 +9,9 @@ import torch
 import glob
 import torchvision.transforms as T
 import torchvision.transforms.functional as F
-from heronWorkspace.dataPreprocessing.classifyMotionGray import ClassifyMotionGray
+import sys
+sys.path.append("/data/tim/heronWorkspace/dataPreprocessing")
+from classifyMotionGray import ClassifyMotionGray
 from sklearn.model_selection import train_test_split
 
 class HeronDatasetCAE(Dataset):

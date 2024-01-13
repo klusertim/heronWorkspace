@@ -9,7 +9,9 @@ import torch
 import glob
 import torchvision.transforms as T
 import torchvision.transforms.functional as F
-from heronWorkspace.dataPreprocessing.classifyMotionGray import ClassifyMotionGray
+import sys
+sys.path.append("/data/tim/heronWorkspace/dataPreprocessing")
+from classifyMotionGray import ClassifyMotionGray
 import random
 from sklearn.model_selection import train_test_split
 
@@ -149,6 +151,7 @@ class MLPDatasetThreeConsecutive(Dataset):
     def generateFeaturesBalanced(self, camera : str):
         try:
             df = pd.read_csv(f"/data/tim/heronWorkspace/MotionGrayClassification/classifiedMotionGray{camera}.csv")
+            dfPreClassified = pd.read_csv("/data/shared/herons/TinaDubach_data/CameraData_2017_july.csv", encoding='unicode_escape', on_bad_lines="warn", sep=";")
         except:
             return []
         
