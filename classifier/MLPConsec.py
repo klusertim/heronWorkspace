@@ -20,7 +20,8 @@ class MLPConsec(pl.LightningModule):
         weight_decay=1e-8,
         num_workers_loader=4,
         mlpModel=None, 
-        cae=None, num_features_X=10, num_features_Y=5, resize_Y=0):
+        cae=None, 
+        filter = None):
         super(MLPConsec, self).__init__() # changed from super(AEHeronModel, self).__init__(), seems to be jupyter issue
 
         # self.save_hyperparameters()
@@ -30,24 +31,14 @@ class MLPConsec(pl.LightningModule):
         self.weight_decay = weight_decay
         self.batch_size = batch_size
         self.num_workers_loader = num_workers_loader
-        self.resize_Y = resize_Y
         
         self.model = mlpModel
         self.cae = cae
         self.cae.eval()
         self.imsize = cae.imsize
+        self.filter = filter
     
-        self.stepX = self.imsize[1] // num_features_X
-        self.stepY = self.imsize[0] // num_features_Y
-
         self.accuracy = Accuracy(task="binary")
-        # dataset specific attributes
-    
-    @staticmethod
-    def add_model_specific_args(parent_parser):
-        parser = ArgumentParser(parents=[parent_parser], add_help=False)
-        parser.add_argument('--resize_Y', type=float, default=0, help="resize Y axis of image: 0 means no resize, 0.5 means half the size (always to the bottom)")
-        return parser
     
 
     def forward(self, x):
@@ -71,9 +62,7 @@ class MLPConsec(pl.LightningModule):
         y = y.type_as(pred)
         self.accuracy(torch.sigmoid(pred), y)
 
-        # print(f"pred: {pred}\ntrue: {y}")
         loss = F.binary_cross_entropy_with_logits(pred, y) #TODO: evtl change reduction, without logits because sigmoid already applied
-        # print(f"loss: {loss}")
         self.log("train_loss", loss, prog_bar=True, sync_dist=True) 
         self.log(f"train_acc", self.accuracy, prog_bar=True, sync_dist=True)
         return loss
@@ -85,15 +74,11 @@ class MLPConsec(pl.LightningModule):
 
         errorVals = self.heatMap(x, output, stepX=self.stepX, stepY=self.stepY).flatten(start_dim=1)
 
-        # print(errorVals)
         pred = self(errorVals).squeeze(1)
     
-        # print(f'pred: {torch.sigmoid(pred)}')
-        # print(f'y: {y}')
         y = y.type_as(pred)
         self.accuracy(torch.sigmoid(pred), y)
 
-        # print(f"pred: {pred}, y: {y}")
         loss = F.binary_cross_entropy_with_logits(pred, y)
 
         self.log(f"{print_log}_loss", loss, prog_bar=True, sync_dist=True)
@@ -176,15 +161,15 @@ class MLPConsec(pl.LightningModule):
         plt.show()
 
 
-    def heatMap(self, before: torch.Tensor, after: torch.Tensor, stepY, stepX):
-        heatMaps = []
-        for batchIndex in range(len(before)):
-            heatMap = []
-            for i in range(0, before.shape[-2]-stepY+1, stepY):
-                row = []
-                for j in range(0, before.shape[-1]-stepX+1, stepX):
-                    row.append(F.mse_loss(before[batchIndex,:, i:i+stepY, j:j+stepX], after[batchIndex, :, i:i+stepY, j:j+stepX]).item())
-                heatMap.append(row)
-            heatMaps.append(heatMap)
+    # def heatMap(self, before: torch.Tensor, after: torch.Tensor, stepY, stepX):
+    #     heatMaps = []
+    #     for batchIndex in range(len(before)):
+    #         heatMap = []
+    #         for i in range(0, before.shape[-2]-stepY+1, stepY):
+    #             row = []
+    #             for j in range(0, before.shape[-1]-stepX+1, stepX):
+    #                 row.append(F.mse_loss(before[batchIndex,:, i:i+stepY, j:j+stepX], after[batchIndex, :, i:i+stepY, j:j+stepX]).item())
+    #             heatMap.append(row)
+    #         heatMaps.append(heatMap)
         
-        return torch.Tensor(heatMaps).type_as(before)
+    #     return torch.Tensor(heatMaps).type_as(before)

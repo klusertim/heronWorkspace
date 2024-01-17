@@ -22,14 +22,13 @@ class MLPDatasetValidated(Dataset): # from validation of SBU4
     ROOT_DIR = '/data/shared/herons/TinaDubach_data'
 
     imsize = (2448-100, 3264) # h x w
-    def __init__(self, set="train", resize_to = (216, 324), transform=None, lblValidationMode = "TinaDubach"):
+    def __init__(self, set="train", resize_to = (216, 324), transform=None):
         """
         validatoinMode: TinaDubach, MotionSensor, Manually
         """
             
         self.set = set
         self.imsize = resize_to
-        self.lblValidationMode = lblValidationMode
 
         df = pd.read_csv("datasetValidation.csv")
         unwanted = df.columns[df.columns.str.startswith('Unnamed')]
@@ -95,9 +94,10 @@ class MLPDatasetThreeConsecutive(Dataset):
     ROOT_DIR = '/data/shared/herons/TinaDubach_data'
 
     imsize = (2448-100, 3264) # h x w
-    def __init__(self, set="train", cameras = ["GBU3"],  resize_to = (216, 324), transform=None):           
+    def __init__(self, set="train", cameras = ["GBU3"],  resize_to = (216, 324), lblValidationMode = "TinaDubach", transform=None):           
         self.set = set
         self.imsize = resize_to
+        self.lblValidationMode = lblValidationMode
 
         allFeatures = []
         for camera in cameras:

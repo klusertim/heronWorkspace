@@ -92,6 +92,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     cameras = args.cameras
+    print(f'cameras: {cameras}')
 
     ClassifyMotionGray().classify(cameras)  
    
