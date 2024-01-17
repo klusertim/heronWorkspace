@@ -22,11 +22,14 @@ class MLPDatasetValidated(Dataset): # from validation of SBU4
     ROOT_DIR = '/data/shared/herons/TinaDubach_data'
 
     imsize = (2448-100, 3264) # h x w
-    def __init__(self, set="train", resize_to = (216, 324), transform=None):
-
+    def __init__(self, set="train", resize_to = (216, 324), transform=None, lblValidationMode = "TinaDubach"):
+        """
+        validatoinMode: TinaDubach, MotionSensor, Manually
+        """
             
         self.set = set
         self.imsize = resize_to
+        self.lblValidationMode = lblValidationMode
 
         df = pd.read_csv("datasetValidation.csv")
         unwanted = df.columns[df.columns.str.startswith('Unnamed')]
@@ -155,12 +158,20 @@ class MLPDatasetThreeConsecutive(Dataset):
         except:
             return []
         
-        df = df[(df["grayscale"] == False) & (df["badImage"] == False)].sort_values(by=['ImagePath'])
-
-        #TODO: evtl filter out non-unique ImagePaths
+        # if we take pictures without motion here, we'd be sure to have a distinct dataset from the one for the CAE
+        df = df[(df["grayscale"] == False) & (df["badImage"] == False)]
+        df = pd.merge(df, dfPreClassified, on="ImagePath", how="left")
+        dfAll = dfAll.drop_duplicates(subset = ["ImagePath"], keep="first").sort_values(by=['ImagePath']) 
 
         sortedPaths = df["ImagePath"].tolist()
-        motions = df["motion"].astype(int).tolist()
+
+        if self.lblValidationMode == "TinaDubach":
+            motions = df[df["species"].notna()].astype(int).tolist()
+        elif self.lblValidationMode == "MotionSensor":
+            motions = df["motion"].astype(int).tolist()
+        else:
+            raise ValueError(f'Label val mode: {self.lblValidationMode} not implemented yet')
+            
         features = []
 
         for i, row in enumerate(sortedPaths):
@@ -175,6 +186,7 @@ class MLPDatasetThreeConsecutive(Dataset):
         featuresMotion = [feature for feature in features if feature[1] == 1]
         minLen = min(len(featuresNormal), len(featuresMotion))
 
+        #balance the dataset
         random.seed(1)
         featuresNormal = random.sample(featuresNormal, minLen)
         featuresMotion = random.sample(featuresMotion, minLen)
