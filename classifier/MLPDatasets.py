@@ -153,22 +153,22 @@ class MLPDatasetThreeConsecutive(Dataset):
 
     def generateFeaturesBalanced(self, camera : str):
         try:
-            df = pd.read_csv(f"/data/tim/heronWorkspace/MotionGrayClassification/classifiedMotionGray{camera}.csv")
+            dfMotionGrayClassified = pd.read_csv(f"/data/tim/heronWorkspace/MotionGrayClassification/classifiedMotionGray{camera}.csv")
             dfPreClassified = pd.read_csv("/data/shared/herons/TinaDubach_data/CameraData_2017_july.csv", encoding='unicode_escape', on_bad_lines="warn", sep=";")
         except:
             return []
         
         # if we take pictures without motion here, we'd be sure to have a distinct dataset from the one for the CAE
-        df = df[(df["grayscale"] == False) & (df["badImage"] == False)]
-        df = pd.merge(df, dfPreClassified, on="ImagePath", how="left")
+        dfMotionGrayClassified = dfMotionGrayClassified[(dfMotionGrayClassified["grayscale"] == False) & (dfMotionGrayClassified["badImage"] == False)]
+        dfAll = pd.merge(dfMotionGrayClassified, dfPreClassified, left_on="ImagePath", right_on="fotocode", how="left")
         dfAll = dfAll.drop_duplicates(subset = ["ImagePath"], keep="first").sort_values(by=['ImagePath']) 
 
-        sortedPaths = df["ImagePath"].tolist()
+        sortedPaths = dfAll["ImagePath"].tolist()
 
         if self.lblValidationMode == "TinaDubach":
-            motions = df[df["species"].notna()].astype(int).tolist()
+            motions = dfAll["species"].notna().astype(int).tolist()
         elif self.lblValidationMode == "MotionSensor":
-            motions = df["motion"].astype(int).tolist()
+            motions = dfAll["motion"].astype(int).tolist()
         else:
             raise ValueError(f'Label val mode: {self.lblValidationMode} not implemented yet')
             
