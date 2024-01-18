@@ -74,7 +74,7 @@ class ClassifyMotionGray():
                 save to csv
             """
             df = pd.DataFrame(imagePropsList, columns=["camera", "ImagePath", "badImage", "motion", "grayscale"])
-            csvName = f"MotionGrayClassification/classifiedMotionGray{folderName}.csv"
+            csvName = f"/data/tim/heronWorkspace/MotionGrayClassification/classifiedMotionGray{folderName}.csv"
             try:
                 df.to_csv(csvName, index=False)
                 print(f"saved {csvName}")
