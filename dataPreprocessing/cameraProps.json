@@ -1,0 +1,25 @@
+{
+    "_comment": "padding: [top, right, bottom, left], values of 0-1",
+    "SBU2":{
+        "padding": [0.1, 0, 0, 0],
+        "excludes": []
+    },
+    "SBU3":{
+        "padding": [0.1, 0, 0, 0],
+        "excludes": []
+    },
+    "SBU4":{
+        "padding": [0.3, 0, 0, 0],
+        "excludes": []
+    },
+    "NEN1":{
+        "padding": [0.15, 0, 0, 0],
+        "excludes": []
+    },
+    "NEN3":{
+        "padding": [0.3, 0, 0, 0],
+        "excludes": [
+            ["2017_SBU2_06040682", "2017_SBU2_06270810"]
+        ]
+    }
+}
