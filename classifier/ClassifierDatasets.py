@@ -158,7 +158,7 @@ class DatasetThreeConsecutive(Dataset):
         camera = imgs[1].split("_")[1]
         try:
             prevImg, img, nextImg = [self.loadAndTransform(x) for x in imgs]     
-            return [prevImg, img, nextImg], lbl, camera, idx
+            return [prevImg, img, nextImg], lbl, camera, imgs[1]
         except OSError:
             print(f"Error occured loading the image: {img}")
             zero = torch.zeros((3, self.imsize[0], self.imsize[1]))
@@ -166,7 +166,7 @@ class DatasetThreeConsecutive(Dataset):
                 [zero]*3,
                 0,
                 camera,
-                idx
+                imgs[1]
             )
     
     def transform(self, img):
@@ -232,26 +232,26 @@ class DatasetThreeConsecutive(Dataset):
         elif self.lblValidationMode == "Manual":
             #load manually generated labels
             try:
-                dfFeatures = pd.read_csv(f"./../manuallyClassified/manuallyClassified{camera}.csv")
+                dfFeatures = pd.read_csv(f"/data/tim/heronWorkspace/manuallyClassified/manuallyClassified{camera}.csv")
             except:
-                print(f"./../manuallyClassified/manuallyClassified{camera}.csv not found\nyou must manually classify some images first to use the manual validation mode")
-                raise FileNotFoundError("datasetValidation.csv not found")
+                raise FileNotFoundError(f"/data/tim/heronWorkspace/manuallyClassified/manuallyClassified{camera}.csv not found\nyou must manually classify some images first to use the manual validation mode")
 
 
             # label generation depending on obviousness
             if self.anomalyObviousness == "obvious":
-                dfFeatures = dfFeatures[(dfFeatures["ValidationValue"] == 0) | (dfFeatures["ValidationValue"] == 2) | (dfFeatures["ValidationValue"] == 4)]
+                indexes = dfFeatures[(dfFeatures["ValidationValue"] != 0) & (dfFeatures["ValidationValue"] != 2) & (dfFeatures["ValidationValue"] != 4)].index
+                dfFeatures.loc[indexes, "ValidationValue"] = -1
             elif self.anomalyObviousness == "notObvious":
-                dfFeatures = dfFeatures[(dfFeatures["ValidationValue"] == 0) | (dfFeatures["ValidationValue"] == 1) | (dfFeatures["ValidationValue"] == 3)]
-            elif self.anomalyObviousness == "all":
-                dfFeatures = dfFeatures[dfFeatures["ValidationValue"] >= 0]
+                indexes = dfFeatures[(dfFeatures["ValidationValue"] != 0) & (dfFeatures["ValidationValue"] != 1) & (dfFeatures["ValidationValue"] != 3)].index
+                dfFeatures.loc[indexes, "ValidationValue"] = -1
+            # elif self.anomalyObviousness == "all":
+            #     dfFeatures = dfFeatures[dfFeatures["ValidationValue"] >= 0]
             else:
                 raise ValueError(f"anomalyObviousness: {self.anomalyObviousness} not implemented")
-            
-            dfFeatures = dfFeatures.sort_values(by=["ImagePath"])
 
+            dfFeatures = dfFeatures.sort_values("ImagePath")
             labels = dfFeatures["ValidationValue"].astype(int).tolist()
-            labels = [1 if x > 0 else 0 for x in labels]
+            labels = [1 if x > 0 else x for x in labels]
         else:
             raise ValueError(f'Label val mode: {self.lblValidationMode} not implemented')
         
@@ -264,7 +264,8 @@ class DatasetThreeConsecutive(Dataset):
                 _, _, nrPrev = sortedPaths[i-1].split("_")
                 _, _, nrNext = sortedPaths[i+1].split("_")
                 if int(nrPrev) + 1 == int(nrCurr) and int(nrNext)-1 == int(nrCurr):
-                    features.append([(sortedPaths[i-1], row, sortedPaths[i+1]), labels[i]])
+                    if labels[i] != -1:
+                        features.append([(sortedPaths[i-1], row, sortedPaths[i+1]), labels[i]])
 
         # balance dataset
         if self.balanced:
@@ -309,4 +310,4 @@ class UnNormalize(object):
             t.mul_(s).add_(m)
             # The normalize code -> t.sub_(m).div_(s)
         return tensor
-# %%
+
