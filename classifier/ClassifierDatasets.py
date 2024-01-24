@@ -107,7 +107,7 @@ class DatasetThreeConsecutive(Dataset):
                 transforms=None):
         """
         set: train, val, test, all
-        lblValidatoinMode: TinaDubach, MotionSensor, Manually
+        lblValidatoinMode: TinaDubach, MotionSensor, Manual
         cameras: list of cameras to use
         resize_to: (h, w) to resize the images to
         balanced: if true, the dataset will be balanced between positive and negative frames - always balanced on camera basis
@@ -125,11 +125,16 @@ class DatasetThreeConsecutive(Dataset):
         self.transforms = transforms
         self.distinctCAETraining = distinctCAETraining
         self.colorMode = colorMode
+        self.random_state = random_state
 
         allFeatures = []
         for camera in cameras:
             allFeatures.extend(self.generateFeatures(camera))
 
+        if set == "all":
+            self.imagePaths = allFeatures
+            return
+        
         trainSet, testSet = train_test_split(allFeatures, test_size=0.2, random_state=random_state)
 
         trainSet, valSet = train_test_split(trainSet, test_size=0.25, random_state=random_state)
@@ -140,8 +145,6 @@ class DatasetThreeConsecutive(Dataset):
             self.imagePaths = valSet
         elif set == "train":
             self.imagePaths = trainSet
-        elif set == "all":
-            self.imagePaths = allFeatures
         else:
             raise ValueError(f"set: {set} not implemented")
 
@@ -152,15 +155,17 @@ class DatasetThreeConsecutive(Dataset):
     def __getitem__(self, idx):
         
         imgs, lbl = self.imagePaths[idx]
+        camera = imgs[1].split("_")[1]
         try:
             prevImg, img, nextImg = [self.loadAndTransform(x) for x in imgs]     
-            return [prevImg, img, nextImg], lbl, idx
+            return [prevImg, img, nextImg], lbl, camera, idx
         except OSError:
             print(f"Error occured loading the image: {img}")
             zero = torch.zeros((3, self.imsize[0], self.imsize[1]))
             return (
                 [zero]*3,
                 0,
+                camera,
                 idx
             )
     
@@ -208,11 +213,50 @@ class DatasetThreeConsecutive(Dataset):
         else:
             raise ValueError(f"colorMode: {self.colorMode} not implemented")
         
-        # generate features - always theree consecutive images
-        dfAll = pd.merge(dfMotionGrayClassified, dfPreClassified, left_on="ImagePath", right_on="fotocode", how="left")
-        dfAll = dfAll.drop_duplicates(subset = ["ImagePath"], keep="first").sort_values(by=['ImagePath']) 
-        sortedPaths = dfAll["ImagePath"].tolist()
+        # merge dataframes and drop duplicates
+        
+        # label generation depending on validation mode
+        # IMPORTANT: sort the data here already
+        labels = []
+        if self.lblValidationMode == "TinaDubach":
+            dfFeatures = pd.merge(dfMotionGrayClassified, dfPreClassified, left_on="ImagePath", right_on="fotocode", how="left")
+            dfFeatures = dfFeatures.drop_duplicates(subset = ["ImagePath"], keep="first")
+            dfFeatures = dfFeatures.sort_values(by=["ImagePath"])
+            labels = dfFeatures["species"].notna().astype(int).tolist()
 
+        elif self.lblValidationMode == "MotionSensor":
+            dfFeatures = dfMotionGrayClassified
+            dfFeatures = dfFeatures.sort_values(by=["ImagePath"])
+            labels = dfFeatures["motion"].astype(int).tolist()
+
+        elif self.lblValidationMode == "Manual":
+            #load manually generated labels
+            try:
+                dfFeatures = pd.read_csv(f"./../manuallyClassified/manuallyClassified{camera}.csv")
+            except:
+                print(f"./../manuallyClassified/manuallyClassified{camera}.csv not found\nyou must manually classify some images first to use the manual validation mode")
+                raise FileNotFoundError("datasetValidation.csv not found")
+
+
+            # label generation depending on obviousness
+            if self.anomalyObviousness == "obvious":
+                dfFeatures = dfFeatures[(dfFeatures["ValidationValue"] == 0) | (dfFeatures["ValidationValue"] == 2) | (dfFeatures["ValidationValue"] == 4)]
+            elif self.anomalyObviousness == "notObvious":
+                dfFeatures = dfFeatures[(dfFeatures["ValidationValue"] == 0) | (dfFeatures["ValidationValue"] == 1) | (dfFeatures["ValidationValue"] == 3)]
+            elif self.anomalyObviousness == "all":
+                dfFeatures = dfFeatures[dfFeatures["ValidationValue"] >= 0]
+            else:
+                raise ValueError(f"anomalyObviousness: {self.anomalyObviousness} not implemented")
+            
+            dfFeatures = dfFeatures.sort_values(by=["ImagePath"])
+
+            labels = dfFeatures["ValidationValue"].astype(int).tolist()
+            labels = [1 if x > 0 else 0 for x in labels]
+        else:
+            raise ValueError(f'Label val mode: {self.lblValidationMode} not implemented')
+        
+        # generate features - always theree consecutive images
+        sortedPaths = dfFeatures["ImagePath"].tolist()
         features = []
         for i, row in enumerate(sortedPaths):
             _, _, nrCurr = row.split("_")
@@ -221,29 +265,6 @@ class DatasetThreeConsecutive(Dataset):
                 _, _, nrNext = sortedPaths[i+1].split("_")
                 if int(nrPrev) + 1 == int(nrCurr) and int(nrNext)-1 == int(nrCurr):
                     features.append([(sortedPaths[i-1], row, sortedPaths[i+1]), labels[i]])
-
-        
-        # label generation depending on validation mode
-        if self.lblValidationMode == "TinaDubach":
-            labels = dfAll["species"].notna().astype(int).tolist()
-        elif self.lblValidationMode == "MotionSensor":
-            labels = dfAll["motion"].astype(int).tolist()
-        elif self.lblValidationMode == "Manual":
-            # label generation depending on obviousness
-            if self.anomalyObviousness == "obvious":
-                labels = dfAll[(dfAll["ValidationValue"] == 0) | (dfAll["ValidationValue"] == 2) | (dfAll["ValidationValue"] == 4)]["ValidationValue"]
-            elif self.anomalyObviousness == "notObvious":
-                labels = dfAll[(dfAll["ValidationValue"] == 0) | (dfAll["ValidationValue"] == 1) | (dfAll["ValidationValue"] == 3)]["ValidationValue"]
-            elif self.anomalyObviousness == "all":
-                labels = dfAll[dfAll["ValidationValue"] >= 0]
-            else:
-                raise ValueError(f"anomalyObviousness: {self.anomalyObviousness} not implemented")
-            
-            labels = labels.astype(int).tolist()
-            labels = [1 if x > 0 else 0 for x in labels]
-        else:
-            raise ValueError(f'Label val mode: {self.lblValidationMode} not implemented yet')
-        
 
         # balance dataset
         if self.balanced:
@@ -256,7 +277,6 @@ class DatasetThreeConsecutive(Dataset):
             featuresMotion = random.sample(featuresMotion, minLen)
 
             features = featuresNormal + featuresMotion
-        
         return features
     
 
@@ -289,3 +309,4 @@ class UnNormalize(object):
             t.mul_(s).add_(m)
             # The normalize code -> t.sub_(m).div_(s)
         return tensor
+# %%

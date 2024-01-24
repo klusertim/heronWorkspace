@@ -10,7 +10,7 @@ import numpy as np
 from torchmetrics.image import StructuralSimilarityIndexMeasure
 from torchmetrics.classification import Accuracy
 from argparse import ArgumentParser
-from heronWorkspace.classifier.MLPDatasets import MLPDatasetValidated
+from heronWorkspace.classifier.ClassifierDatasets import MLPDatasetValidated
 
   
 class MLPConsec(pl.LightningModule):
