@@ -1,7 +1,10 @@
 import sys
 sys.path.append("/data/tim/heronWorkspace/src")
+sys.path.append("/data/tim/heronWorkspace/AE")
+sys.path.append("/data/tim/heronWorkspace/classifier")
+sys.path.append("/data/tim/heronWorkspace/")
 
-from heronWorkspace.AE.AEHeronModelV2 import CAEHeron
+from AEHeronModelV2 import CAEHeron
 from lightning.pytorch.callbacks import ModelCheckpoint
 from torchsummary import summary
 import lightning.pytorch as pl
@@ -18,14 +21,14 @@ from scipy.stats import loguniform, uniform
 distributions = dict(
     learning_rate = loguniform(0.001, 0.1),
     weight_decay = loguniform(1e-8, 1e-4),
-    batch_size = [8, 16, 32], # 32 probably too much
-    cameras = [["NEN1", "SBU3"]], #["NEN1", "SBU3", "SBU2"]
-    bottleneck = [16, 32, 64, 128, 256], # not stored at the moment
+    batch_size = [8, 16], # 32 probably too much
+    cameras = [["NEN1", "SBU3", "SBU2", "SBU4", "NEN3"]], #["NEN1", "SBU3", "SBU2"]
+    bottleneck = [32, 64, 128, 256], # not stored at the moment
     ldim = [4, 8, 16],
     gammaScheduler = uniform(0.1, 0.9)
 )
 
-sampler = ParameterSampler(distributions, n_iter=10, random_state=5)
+sampler = ParameterSampler(distributions, n_iter=10, random_state=42)
 
 
 for params in sampler:
@@ -41,7 +44,7 @@ for params in sampler:
 
     logger=CSVLogger(save_dir="logs/", name="CAEV1")
     callbacks = [ModelCheckpoint(monitor="val_loss", save_top_k=2, mode="min"), ModelCheckpoint(monitor="val_loss", every_n_epochs=15, mode="min")]
-    trainer = pl.Trainer(callbacks=callbacks, logger=logger, accelerator='cuda', max_epochs=50, log_every_n_steps=2) # devices is the index of the gpu, callbacks=[FineTuneLearningRateFinder(milestones=(5, 10))],
+    trainer = pl.Trainer(callbacks=callbacks, logger=logger, accelerator='cuda', max_epochs=25, log_every_n_steps=2) # devices is the index of the gpu, callbacks=[FineTuneLearningRateFinder(milestones=(5, 10))],
     trainer.fit(cae)
     
     try: 
