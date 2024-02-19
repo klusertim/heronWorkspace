@@ -13,6 +13,7 @@ import sys
 sys.path.append("/data/tim/heronWorkspace/dataPreprocessing")
 from classifyMotionGray import ClassifyMotionGray
 from sklearn.model_selection import train_test_split
+import json
 
 class HeronDatasetCAE(Dataset):
     ROOT_DIR = '/data/shared/herons/TinaDubach_data'
@@ -24,9 +25,12 @@ class HeronDatasetCAE(Dataset):
         self.imsize = resize_to
         self.transforms = transforms
 
-        
+        f = open("dataPreprocessing/cameraProps.json")
+        cameraProps = json.load(f)
+
         # load data
         for i, cam in enumerate(cameras):
+
             try:
                 dfNew = pd.read_csv(f"MotionGrayClassification/classifiedMotionGray{cam}.csv")
             except FileNotFoundError:
@@ -34,6 +38,20 @@ class HeronDatasetCAE(Dataset):
                 ClassifyMotionGray().classify([cam])
                 dfNew = pd.read_csv(f"MotionGrayClassification/classifiedMotionGray{cam}.csv")
                 continue
+
+            # get rid of corrupt/unwanted images
+            corruptImgs = []
+            try:
+                corruptImgsRange = list(cameraProps[cam]["exclude"])
+                for start, stop in corruptImgsRange:
+                    year, _, nrStart = start.split("_")
+                    _, _, nrStop = stop.split("_")
+                    corruptImgs += [f"{year}_{cam}_{i}" for i in range(int(nrStart), int(nrStop)+1)]
+            except KeyError:
+                print(f"Camera {cam} not found in cameraProps.json")
+                continue
+            dfNew = dfNew[~dfNew["ImagePath"].isin(corruptImgs)]
+
             if i == 0:
                 df = dfNew
             else:
@@ -41,6 +59,7 @@ class HeronDatasetCAE(Dataset):
             
 
         df = df[(df["grayscale"] == False) & (df["motion"] == False) & (df["badImage"] == False)]
+        df
         allPaths = df["ImagePath"].unique().tolist()
 
         trainSet, testSet = train_test_split(allPaths, test_size=0.15, random_state=1)

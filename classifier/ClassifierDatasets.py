@@ -145,6 +145,8 @@ class DatasetThreeConsecutive(Dataset):
             self.imagePaths = valSet
         elif set == "train":
             self.imagePaths = trainSet
+        elif set == "paper":
+            self.imagePaths = self.generatePaperSet()
         else:
             raise ValueError(f"set: {set} not implemented")
 
@@ -180,6 +182,18 @@ class DatasetThreeConsecutive(Dataset):
         return trsf(img)
     
     ### HELPER FUNCTIONS ###
+    def generatePaperSet(self):
+        # 2-3 interesting images
+        intImg1 = ["2017_SBU3_04030785", "2017_SBU3_04030786", "2017_SBU3_04030787"]
+        intImg2 = ["2017_SBU3_04080237", "2017_SBU3_04080238", "2017_SBU3_04080239"]
+        intImg3 = ["2017_SBU3_04140814", "2017_SBU3_04140815", "2017_SBU3_04140816"]
+        intImg4 = ["2017_SBU3_04160054", "2017_SBU3_04160055", "2017_SBU3_04160056"]
+        intImg5 = ["2017_SBU3_04280215", "2017_SBU3_04280216", "2017_SBU3_04280217"]
+        intImg6 = ["2017_SBU3_07050557", "2017_SBU3_07050558", "2017_SBU3_07050559"]
+        intImg7 = ["2017_SBU3_05270186", "2017_SBU3_05270187", "2017_SBU3_05270188"]
+
+        return [(intImg1, 1), (intImg2, 0), (intImg3, 0), (intImg4, 0), (intImg5, 0), (intImg6, 0), (intImg7, 1)]
+        
 
     def loadAndTransform(self, path):
         with open(f'/data/shared/herons/TinaDubach_data/{path[5:9]}/{path}.JPG', "rb") as f:
