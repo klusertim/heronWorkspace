@@ -184,15 +184,44 @@ class DatasetThreeConsecutive(Dataset):
     ### HELPER FUNCTIONS ###
     def generatePaperSet(self):
         # 2-3 interesting images
-        intImg1 = ["2017_SBU3_04030785", "2017_SBU3_04030786", "2017_SBU3_04030787"]
-        intImg2 = ["2017_SBU3_04080237", "2017_SBU3_04080238", "2017_SBU3_04080239"]
-        intImg3 = ["2017_SBU3_04140814", "2017_SBU3_04140815", "2017_SBU3_04140816"]
-        intImg4 = ["2017_SBU3_04160054", "2017_SBU3_04160055", "2017_SBU3_04160056"]
-        intImg5 = ["2017_SBU3_04280215", "2017_SBU3_04280216", "2017_SBU3_04280217"]
-        intImg6 = ["2017_SBU3_07050557", "2017_SBU3_07050558", "2017_SBU3_07050559"]
-        intImg7 = ["2017_SBU3_05270186", "2017_SBU3_05270187", "2017_SBU3_05270188"]
+        # intImg1 = ["2017_SBU3_04030785", "2017_SBU3_04030786", "2017_SBU3_04030787"]
+        # intImg2 = ["2017_SBU3_04080237", "2017_SBU3_04080238", "2017_SBU3_04080239"]
+        # intImg3 = ["2017_SBU3_04140814", "2017_SBU3_04140815", "2017_SBU3_04140816"]
+        # intImg4 = ["2017_SBU3_04160054", "2017_SBU3_04160055", "2017_SBU3_04160056"]
+        # intImg5 = ["2017_SBU3_04280215", "2017_SBU3_04280216", "2017_SBU3_04280217"]
+        # intImg6 = ["2017_SBU3_07050557", "2017_SBU3_07050558", "2017_SBU3_07050559"]
+        # intImg7 = ["2017_SBU3_05270186", "2017_SBU3_05270187", "2017_SBU3_05270188"]
 
-        return [(intImg1, 1), (intImg2, 0), (intImg3, 0), (intImg4, 0), (intImg5, 0), (intImg6, 0), (intImg7, 1)]
+        # intImg1 = ["2017_SBU3_04030785", "2017_SBU3_04030786", "2017_SBU3_04030787"]
+        # intImg2 = ["2017_SBU3_04080237", "2017_SBU3_04080238", "2017_SBU3_04080239"]
+        # imArr = ['2017_NEN1_03200419',
+        # '2017_NEN1_04050024',
+        # '2017_NEN1_03220623',
+        # '2017_NEN1_03200432',
+        # '2017_NEN1_07170789',
+        # '2017_NEN1_03280207',
+        # '2017_NEN1_01310504',
+        # '2017_NEN1_07140519',
+        # '2017_NEN1_02260016',
+        # '2017_NEN1_02110554']
+
+        imArr = [
+            '2017_NEN1_03200432',
+            '2017_NEN1_02110554',
+            "2017_SBU3_04080238",
+            "2017_SBU3_07050558"
+        ]
+
+        consImArr = []
+
+        for path in imArr:
+            year, camera, nr = path.split("_")
+            consImArr.append(([f"{year}_{camera}_{str(int(nr)-1).zfill(8)}", path, f"{year}_{camera}_{str(int(nr)+1).zfill(8)}"], 1))
+
+        return consImArr
+        
+
+        # return [(intImg1, 1), (intImg2, 0), (intImg3, 0), (intImg4, 0), (intImg5, 0), (intImg6, 0), (intImg7, 1)]
         
 
     def loadAndTransform(self, path):
