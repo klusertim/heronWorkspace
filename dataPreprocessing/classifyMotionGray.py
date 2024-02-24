@@ -15,6 +15,7 @@ from tqdm import tqdm
 from PIL import Image
 import random
 from argparse import ArgumentParser
+import os
 
 
 class ClassifyMotionGray():
@@ -53,6 +54,11 @@ class ClassifyMotionGray():
         allCamString = "".join(cameras)
 
         for folderName in cameras:
+            csvName = f"/data/tim/heronWorkspace/MotionGrayClassification/classifiedMotionGray{folderName}.csv"
+            if os.path.isfile(csvName):
+                print(f"{csvName} already exists")
+                continue
+
             print(f"Classifying images of camera: {folderName} into grayscale/rgb and motion/static sensor")
             data = MotionGrayHeronDataset(folder=folderName)
             """
@@ -68,13 +74,10 @@ class ClassifyMotionGray():
                 props = np.stack((cam, path, badImage, isM, grayScale), -1)
                 imagePropsList = np.concatenate((imagePropsList, props))
 
-
-
             """
                 save to csv
             """
             df = pd.DataFrame(imagePropsList, columns=["camera", "ImagePath", "badImage", "motion", "grayscale"])
-            csvName = f"/data/tim/heronWorkspace/MotionGrayClassification/classifiedMotionGray{folderName}.csv"
             try:
                 df.to_csv(csvName, index=False)
                 print(f"saved {csvName}")
@@ -92,6 +95,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     cameras = args.cameras
+
+    if cameras[0] == "allTrain":
+        cameras = ["SBU2", "SBU3", "GBU1", "GBU4", "KBU2", "NEN1", "NEN2", "PSU1", "PSU2", "PSU3", "SGN1", "SGN2"]
     print(f'cameras: {cameras}')
 
     ClassifyMotionGray().classify(cameras)  
