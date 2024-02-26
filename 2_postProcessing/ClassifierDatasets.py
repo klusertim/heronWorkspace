@@ -260,58 +260,72 @@ class DatasetThreeConsecutive(Dataset):
             raise ValueError(f"colorMode: {self.colorMode} not implemented")
         
         # merge dataframes and drop duplicates
-        
-        # label generation depending on validation mode
         # IMPORTANT: sort the data here already
+
+        dfFeatures = pd.merge(dfMotionGrayClassified, dfPreClassified, left_on="ImagePath", right_on="fotocode", how="left")
+        dfFeatures = dfFeatures.drop_duplicates(subset = ["ImagePath"], keep="first")
+
+        try:
+            manuallyClassified = pd.read_csv(f"/data/tim/heronWorkspace/manuallyClassified/manuallyClassified{camera}.csv")
+            dfFeatures = pd.merge(dfFeatures, manuallyClassified, on="ImagePath", how="left")
+        except:
+            # if not manual mode, then we dont care
+            if self.lblValidationMode == "Manual":
+                raise FileNotFoundError(f"/data/tim/heronWorkspace/manuallyClassified/manuallyClassified{camera}.csv not found\nyou must manually classify some images first to use the manual validation mode")
+            
+        dfFeatures = dfFeatures.sort_values(by=["ImagePath"])
+        dfFeatures = dfFeatures.reset_index()
+
+        # label generation depending on validation mode
         labels = []
         if self.lblValidationMode == "TinaDubach":
-            dfFeatures = pd.merge(dfMotionGrayClassified, dfPreClassified, left_on="ImagePath", right_on="fotocode", how="left")
-            dfFeatures = dfFeatures.drop_duplicates(subset = ["ImagePath"], keep="first")
-            dfFeatures = dfFeatures.sort_values(by=["ImagePath"])
+            indexSet = dfFeatures.index # all Images
             labels = dfFeatures["species"].notna().astype(int).tolist()
 
         elif self.lblValidationMode == "MotionSensor":
-            dfFeatures = dfMotionGrayClassified
-            dfFeatures = dfFeatures.sort_values(by=["ImagePath"])
+            indexSet = dfFeatures.index # all Images
             labels = dfFeatures["motion"].astype(int).tolist()
 
         elif self.lblValidationMode == "Manual":
             #load manually generated labels
-            try:
-                dfFeatures = pd.read_csv(f"/data/tim/heronWorkspace/manuallyClassified/manuallyClassified{camera}.csv")
-            except:
-                raise FileNotFoundError(f"/data/tim/heronWorkspace/manuallyClassified/manuallyClassified{camera}.csv not found\nyou must manually classify some images first to use the manual validation mode")
-
 
             # label generation depending on obviousness
             if self.anomalyObviousness == "obvious":
-                indexes = dfFeatures[(dfFeatures["ValidationValue"] != 0) & (dfFeatures["ValidationValue"] != 2) & (dfFeatures["ValidationValue"] != 4)].index
-                dfFeatures.loc[indexes, "ValidationValue"] = -1
+                indexSet = dfFeatures[(dfFeatures["ValidationValue"] == 0) | (dfFeatures["ValidationValue"] == 2) | (dfFeatures["ValidationValue"] == 4)].index
             elif self.anomalyObviousness == "notObvious":
-                indexes = dfFeatures[(dfFeatures["ValidationValue"] != 0) & (dfFeatures["ValidationValue"] != 1) & (dfFeatures["ValidationValue"] != 3)].index
-                dfFeatures.loc[indexes, "ValidationValue"] = -1
-            # elif self.anomalyObviousness == "all":
-            #     dfFeatures = dfFeatures[dfFeatures["ValidationValue"] >= 0]
+                indexSet = dfFeatures[(dfFeatures["ValidationValue"] == 0) | (dfFeatures["ValidationValue"] == 1) | (dfFeatures["ValidationValue"] == 3)].index
+            elif self.anomalyObviousness == "all":
+                indexSet = dfFeatures[dfFeatures["ValidationValue"] >= 0].index
             else:
                 raise ValueError(f"anomalyObviousness: {self.anomalyObviousness} not implemented")
 
-            dfFeatures = dfFeatures.sort_values("ImagePath")
-            labels = dfFeatures["ValidationValue"].astype(int).tolist()
+            labels = dfFeatures.loc[indexSet]["ValidationValue"].astype(int).tolist()
             labels = [1 if x > 0 else x for x in labels]
         else:
             raise ValueError(f'Label val mode: {self.lblValidationMode} not implemented')
         
-        # generate features - always theree consecutive images
-        sortedPaths = dfFeatures["ImagePath"].tolist()
         features = []
-        for i, row in enumerate(sortedPaths):
-            _, _, nrCurr = row.split("_")
-            if i > 0 and i < len(sortedPaths)-1:
-                _, _, nrPrev = sortedPaths[i-1].split("_")
-                _, _, nrNext = sortedPaths[i+1].split("_")
+        dfPaths = dfFeatures["ImagePath"]
+        for i, index in enumerate(indexSet):
+            _, _, nrCurr = dfPaths.loc[index].split("_")
+            if index > 0 and index < len(dfPaths)-1:
+                _, _, nrPrev = dfPaths.loc[index-1].split("_")
+                _, _, nrNext = dfPaths.loc[index+1].split("_")
                 if int(nrPrev) + 1 == int(nrCurr) and int(nrNext)-1 == int(nrCurr):
                     if labels[i] != -1:
-                        features.append([(sortedPaths[i-1], row, sortedPaths[i+1]), labels[i]])
+                        features.append([(dfPaths.loc[index - 1], dfPaths.loc[index], dfPaths.loc[index + 1]), labels[i]])
+
+        # # generate features - always theree consecutive images
+        # sortedPaths = dfFeatures["ImagePath"].tolist()
+        # features = []
+        # for i, row in enumerate(sortedPaths):
+        #     _, _, nrCurr = row.split("_")
+        #     if i > 0 and i < len(sortedPaths)-1:
+        #         _, _, nrPrev = sortedPaths[i-1].split("_")
+        #         _, _, nrNext = sortedPaths[i+1].split("_")
+        #         if int(nrPrev) + 1 == int(nrCurr) and int(nrNext)-1 == int(nrCurr):
+        #             if labels[i] != -1:
+        #                 features.append([(sortedPaths[i-1], row, sortedPaths[i+1]), labels[i]])
 
         # balance dataset
         if self.balanced:
