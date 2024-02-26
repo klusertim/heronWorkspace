@@ -38,6 +38,7 @@ class ClassifyMotionGray():
         return isGrayscale
 
     def decideM(self, imgBatch: torch.Tensor):
+        imgBatch = imgBatch[:, :, -85:, 290: 375] # [3, 85, 85]
         cond = imgBatch < 0.5
         return cond.sum(dim=(1, 2, 3)).gt(3690)
     
@@ -67,9 +68,9 @@ class ClassifyMotionGray():
             imagePropsList = np.array([]).reshape(0,5)
             batch_size = 16
             loader = DataLoader(data, batch_size=batch_size, num_workers=2, shuffle=False) # batch_size=64, num_workers=3
-            for rawImg, cropImg, _, path, badImage in tqdm(loader):
+            for rawImg, _, path, badImage in tqdm(loader):
                 grayScale = self.decideGrayscale(rawImg)
-                isM = self.decideM(cropImg)
+                isM = self.decideM(rawImg)
                 cam = [folderName] * len(isM)
                 props = np.stack((cam, path, badImage, isM, grayScale), -1)
                 imagePropsList = np.concatenate((imagePropsList, props))
@@ -86,6 +87,11 @@ class ClassifyMotionGray():
                 print(f"try to save {folderName}.csv")
                 df.to_csv(f"{folderName}.csv", index=False)
 
+    def collate_fn(self, batch):
+        return {
+        'pixel_values': torch.stack([x['pixel_values'] for x in batch]),
+        'labels': torch.tensor([x['labels'] for x in batch])
+        }
 
 
 if __name__ == '__main__':
@@ -97,7 +103,7 @@ if __name__ == '__main__':
     cameras = args.cameras
 
     if cameras[0] == "allTrain":
-        cameras = ["SBU2", "SBU3", "GBU1", "GBU4", "KBU2", "NEN1", "NEN2", "PSU1", "PSU2", "PSU3", "SGN1", "SGN2"]
+        cameras = ["SBU2", "SBU3", "GBU1", "GBU4", "KBU2", "NEN1", "NEN2", "PSU2", "PSU3", "SGN1", "SGN2", "PSU1"]
     print(f'cameras: {cameras}')
 
     ClassifyMotionGray().classify(cameras)  

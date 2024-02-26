@@ -36,22 +36,24 @@ class MotionGrayHeronDataset(Dataset):
             with open(pathLabel[0], "rb") as f:
                 img = Image.open(f).convert("RGB")
            
-            cropImg = self.transformCrop(img)
+            # cropImg = self.transformCrop(img)
             img = self.transformTensor(img)
-            return img, cropImg, pathLabel[1], fileName, False
-        except OSError:
+            badImage = False
+            if (img.shape != (3, self.rawImsize[0], self.rawImsize[1])):
+                raise ValueError(f"Image {pathLabel[0]} has wrong shape: {img.shape}")
+            return img, pathLabel[1], fileName, False
+        except (OSError, ValueError):
             # print(f"We had an error loading the image: {pathLabel[0]}")
             return (
                 torch.zeros((3, self.rawImsize[0], self.rawImsize[1])),
-                torch.zeros((3, self.cropImsize, self.cropImsize)),
                 pathLabel[1],
                 fileName,
                 True
             )
     
-    def transformCrop(self, img):
-        trsf = T.Compose([T.ToTensor(), lambda im : F.crop(im, top=im.size(dim=1)-self.cropImsize, left=290, height=self.cropImsize, width=self.cropImsize)])
-        return trsf(img)
+    # def transformCrop(self, img):
+    #     trsf = T.Compose([T.ToTensor(), lambda im : F.crop(im, top=im.size(dim=1)-self.cropImsize, left=290, height=self.cropImsize, width=self.cropImsize)])
+    #     return trsf(img)
     
     def transformTensor(self, img):
         trsf = T.ToTensor()
