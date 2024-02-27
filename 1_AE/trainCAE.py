@@ -22,8 +22,8 @@ distributions = dict(
     learning_rate = loguniform(0.001, 0.1),
     weight_decay = loguniform(1e-8, 1e-4),
     batch_size = [8, 16], # 32 probably too much
-    cameras = [["NEN1", "SBU3", "SBU2", "SBU4", "NEN3"]], #["NEN1", "SBU3", "SBU2"]
-    bottleneck = [32, 64, 128, 256], # not stored at the moment
+    cameras = [["GBU1", "GBU4", "KBU2", "PSU1", "PSU2", "PSU3", "SBU3", "SGN1"]],#[["NEN1", "SBU3", "SBU2", "SBU4", "NEN3"]], #["NEN1", "SBU3", "SBU2"]
+    bottleneck = [32, 64, 128, 256],
     ldim = [4, 8, 16],
     gammaScheduler = uniform(0.1, 0.9)
 )
@@ -42,9 +42,9 @@ for params in sampler:
                    gammaScheduler=params["gammaScheduler"],
                    model=CAEV1)
 
-    logger=CSVLogger(save_dir="logs/", name="CAEV1")
-    callbacks = [ModelCheckpoint(monitor="val_loss", save_top_k=2, mode="min"), ModelCheckpoint(monitor="val_loss", every_n_epochs=15, mode="min")]
-    trainer = pl.Trainer(callbacks=callbacks, logger=logger, accelerator='cuda', max_epochs=25, log_every_n_steps=2) # devices is the index of the gpu, callbacks=[FineTuneLearningRateFinder(milestones=(5, 10))],
+    logger=CSVLogger(save_dir="logs/", name="BasicCAE1")
+    callbacks = [ModelCheckpoint(monitor="val_loss", save_top_k=2, mode="min"), ModelCheckpoint(monitor="val_loss", every_n_epochs=7, mode="min")]
+    trainer = pl.Trainer(callbacks=callbacks, logger=logger, accelerator='cuda', max_epochs=15, log_every_n_steps=2) # devices is the index of the gpu, callbacks=[FineTuneLearningRateFinder(milestones=(5, 10))],
     trainer.fit(cae)
     
     try: 

@@ -38,9 +38,6 @@ class MotionGrayHeronDataset(Dataset):
            
             # cropImg = self.transformCrop(img)
             img = self.transformTensor(img)
-            badImage = False
-            if (img.shape != (3, self.rawImsize[0], self.rawImsize[1])):
-                raise ValueError(f"Image {pathLabel[0]} has wrong shape: {img.shape}")
             return img, pathLabel[1], fileName, False
         except (OSError, ValueError):
             # print(f"We had an error loading the image: {pathLabel[0]}")
@@ -56,7 +53,16 @@ class MotionGrayHeronDataset(Dataset):
     #     return trsf(img)
     
     def transformTensor(self, img):
-        trsf = T.ToTensor()
+        trsf = T.Compose([
+                T.ToTensor(),
+                T.Resize(self.rawImsize)
+            ]) 
+        # trsf = T.Compose([
+        #        T.ToTensor(),
+        #         T.Resize((216, 324), antialias=True),
+        #         lambda im : F.crop(im, top=0, left=0, height=216-20, width=324),
+        #         # T.Normalize(mean=(MEAN, MEAN, MEAN), std=(STD, STD, STD)),
+        #     ])
         return trsf(img)
 
     def prepareData(self):

@@ -96,7 +96,6 @@ class MLPDatasetValidated(Dataset): # from validation of SBU4
 class DatasetThreeConsecutive(Dataset):
     ROOT_DIR = '/data/shared/herons/TinaDubach_data'
 
-    imsize = (2448-100, 3264) # h x w
     def __init__(self,
                 set="train",
                 cameras = ["GBU3"],
@@ -176,9 +175,9 @@ class DatasetThreeConsecutive(Dataset):
     
     def transform(self, img):
         trsf = T.Compose([
-                T.ToTensor(),
-                lambda im : F.crop(im, top=0, left=0, height=2448-190, width=3264),
+               T.ToTensor(),
                 T.Resize([self.imsize[0], self.imsize[1]], antialias=True),
+                lambda im : F.crop(im, top=0, left=0, height=self.imsize[0]-20, width=self.imsize[1]),
                 T.Normalize(mean=(MEAN, MEAN, MEAN), std=(STD, STD, STD)),
             ]
         )
