@@ -59,8 +59,8 @@ class MotionGrayHeronDataset(Dataset):
             ]) 
         # trsf = T.Compose([
         #        T.ToTensor(),
-        #         T.Resize((216, 324), antialias=True),
-        #         lambda im : F.crop(im, top=0, left=0, height=216-20, width=324),
+        #         T.Resize((216+20, 324), antialias=True),
+        #         lambda im : F.crop(im, top=0, left=0, height=216, width=324),
         #         # T.Normalize(mean=(MEAN, MEAN, MEAN), std=(STD, STD, STD)),
         #     ])
         return trsf(img)

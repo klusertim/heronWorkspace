@@ -175,12 +175,11 @@ class DatasetThreeConsecutive(Dataset):
     
     def transform(self, img):
         trsf = T.Compose([
-               T.ToTensor(),
-                T.Resize([self.imsize[0], self.imsize[1]], antialias=True),
-                lambda im : F.crop(im, top=0, left=0, height=self.imsize[0]-20, width=self.imsize[1]),
+                T.ToTensor(),
+                T.Resize([self.imsize[0]+20, self.imsize[1]], antialias=True),
+                lambda im : F.crop(im, top=0, left=0, height=self.imsize[0], width=self.imsize[1]),
                 T.Normalize(mean=(MEAN, MEAN, MEAN), std=(STD, STD, STD)),
-            ]
-        )
+            ])
         return trsf(img)
     
     ### HELPER FUNCTIONS ###
@@ -240,6 +239,7 @@ class DatasetThreeConsecutive(Dataset):
             dfMotionGrayClassified = pd.read_csv(f"/data/tim/heronWorkspace/MotionGrayClassification/classifiedMotionGray{camera}.csv")
             dfPreClassified = pd.read_csv("/data/shared/herons/TinaDubach_data/CameraData_2017_july.csv", encoding='unicode_escape', on_bad_lines="warn", sep=";")
         except:
+            print("could not load motion/gray classification for camera: ", camera)
             return []
         
         dfMotionGrayClassified = dfMotionGrayClassified[(~dfMotionGrayClassified["badImage"])]
@@ -270,7 +270,9 @@ class DatasetThreeConsecutive(Dataset):
         except:
             # if not manual mode, then we dont care
             if self.lblValidationMode == "Manual":
-                raise FileNotFoundError(f"/data/tim/heronWorkspace/manuallyClassified/manuallyClassified{camera}.csv not found\nyou must manually classify some images first to use the manual validation mode")
+                print(f"/data/tim/heronWorkspace/manuallyClassified/manuallyClassified{camera}.csv not found\nyou must manually classify some images first to use the manual validation mode")
+                print(f"skipping the camera: {camera}")
+                return []
             
         dfFeatures = dfFeatures.sort_values(by=["ImagePath"])
         dfFeatures = dfFeatures.reset_index()

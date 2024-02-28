@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 from models import CAEV1
 from sklearn.model_selection import ParameterSampler
 from scipy.stats import loguniform, uniform
+from datetime import datetime
 
 
 
@@ -28,11 +29,16 @@ distributions = dict(
     gammaScheduler = uniform(0.1, 0.9)
 )
 
-sampler = ParameterSampler(distributions, n_iter=10, random_state=42)
+sampler = ParameterSampler(distributions, n_iter=10, random_state=1)
 
 
 for params in sampler:
     print(params)
+
+    now = datetime.now()
+    # current_time = now.strftime("%H:%M:%S")
+    print("Begin training at: ", now)
+
     cae = CAEHeron(learning_rate=params["learning_rate"],
                    weight_decay=params["weight_decay"],
                    batch_size=params["batch_size"],
@@ -46,6 +52,9 @@ for params in sampler:
     callbacks = [ModelCheckpoint(monitor="val_loss", save_top_k=2, mode="min"), ModelCheckpoint(monitor="val_loss", every_n_epochs=7, mode="min")]
     trainer = pl.Trainer(callbacks=callbacks, logger=logger, accelerator='cuda', max_epochs=15, log_every_n_steps=2) # devices is the index of the gpu, callbacks=[FineTuneLearningRateFinder(milestones=(5, 10))],
     trainer.fit(cae)
+
+    now = datetime.now()
+    print("End training at: ", now)
     
     try: 
         # Plot
@@ -65,5 +74,6 @@ for params in sampler:
         plt.savefig(f"{trainer.logger.log_dir}/loss_plot.jpg")
     except:
         print("Could not plot loss")
-
+    
+    trainer = pl.Trainer(callbacks=[], logger=None, accelerator='cuda', max_epochs=1, devices=1, num_nodes=1)
     trainer.test(cae)
