@@ -1,6 +1,6 @@
 import torch.nn as nn
 
-#### Models for AEHeronModelV2 ####
+#### Models for AEHeronModel ####
 
 class CAEV1(nn.Module):
     imsize = (216, 324)

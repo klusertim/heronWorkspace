@@ -18,14 +18,13 @@ import json
 class HeronDatasetCAE(Dataset):
     ROOT_DIR = '/data/shared/herons/TinaDubach_data'
 
-    imsize = (2448-100, 3264) # h x w
     def __init__(self, set="train", resize_to = (216, 324), cameras = None, transforms=None):
         
         self.set = set
         self.imsize = resize_to
         self.transforms = transforms
 
-        f = open("dataPreprocessing/cameraProps.json")
+        f = open("/data/tim/heronWorkspace/0_preProcessing/cameraProps.json")
         cameraProps = json.load(f)
 
         # load data
@@ -42,15 +41,16 @@ class HeronDatasetCAE(Dataset):
             # get rid of corrupt/unwanted images
             corruptImgs = []
             try:
-                corruptImgsRange = list(cameraProps[cam]["exclude"])
-                for start, stop in corruptImgsRange:
-                    year, _, nrStart = start.split("_")
-                    _, _, nrStop = stop.split("_")
-                    corruptImgs += [f"{year}_{cam}_{i}" for i in range(int(nrStart), int(nrStop)+1)]
+                if cam in cameraProps.keys():
+                    corruptImgsRange = list(cameraProps[cam]["exclude"])
+                    for start, stop in corruptImgsRange:
+                        year, _, nrStart = start.split("_")
+                        _, _, nrStop = stop.split("_")
+                        corruptImgs += [f"{year}_{cam}_{i}" for i in range(int(nrStart), int(nrStop)+1)]
+                dfNew = dfNew[~dfNew["ImagePath"].isin(corruptImgs)]
             except KeyError:
                 print(f"Camera {cam} not found in cameraProps.json")
                 continue
-            dfNew = dfNew[~dfNew["ImagePath"].isin(corruptImgs)]
 
             if i == 0:
                 df = dfNew
@@ -59,7 +59,7 @@ class HeronDatasetCAE(Dataset):
             
 
         df = df[(df["grayscale"] == False) & (df["motion"] == False) & (df["badImage"] == False)]
-        df
+        
         allPaths = df["ImagePath"].unique().tolist()
 
         trainSet, testSet = train_test_split(allPaths, test_size=0.15, random_state=1)
@@ -99,8 +99,8 @@ class HeronDatasetCAE(Dataset):
             return self.transforms(img)
         trsf = T.Compose([
                 T.ToTensor(),
-                lambda im : F.crop(im, top=0, left=0, height=2448-190, width=3264),
-                T.Resize([self.imsize[0], self.imsize[1]], antialias=True),
+                T.Resize([self.imsize[0]+20, self.imsize[1]], antialias=True),
+                lambda im : F.crop(im, top=0, left=0, height=self.imsize[0], width=self.imsize[1]),
                 T.Normalize(mean=(MEAN, MEAN, MEAN), std=(STD, STD, STD)),
             ]
         )

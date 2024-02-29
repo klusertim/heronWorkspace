@@ -4,7 +4,7 @@ sys.path.append("/data/tim/heronWorkspace/0_preProcessing")
 sys.path.append("/data/tim/heronWorkspace/1_AE")
 sys.path.append("/data/tim/heronWorkspace/2_postProcessing")
 
-from AEHeronModelV2 import CAEHeron
+from AEHeronModel import CAEHeron
 from lightning.pytorch.callbacks import ModelCheckpoint
 from torchsummary import summary
 import lightning.pytorch as pl
@@ -33,7 +33,7 @@ sampler = ParameterSampler(distributions, n_iter=10, random_state=1)
 
 
 for params in sampler:
-    print(params)
+    # print(params)
 
     now = datetime.now()
     # current_time = now.strftime("%H:%M:%S")
