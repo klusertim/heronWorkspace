@@ -31,11 +31,12 @@ class HeronDatasetCAE(Dataset):
         for i, cam in enumerate(cameras):
 
             try:
-                dfNew = pd.read_csv(f"MotionGrayClassification/classifiedMotionGray{cam}.csv")
+                dfNew = pd.read_csv(f"/data/tim/heronWorkspace/MotionGrayClassification/classifiedMotionGray{cam}.csv")
             except FileNotFoundError:
-                print(f"File not found: MotionGrayClassification/classifiedMotionGray{cam}.csv")
-                ClassifyMotionGray().classify([cam])
-                dfNew = pd.read_csv(f"MotionGrayClassification/classifiedMotionGray{cam}.csv")
+                print(f"File not found: /data/tim/heronWorkspace/MotionGrayClassification/classifiedMotionGray{cam}.csv")
+                print(f"please do manually trigger the classification for {cam}")
+                # ClassifyMotionGray().classify([cam])
+                # dfNew = pd.read_csv(f"MotionGrayClassification/classifiedMotionGray{cam}.csv")
                 continue
 
             # get rid of corrupt/unwanted images

@@ -15,7 +15,9 @@ from torchvision.transforms import GaussianBlur
 import torch.nn.functional as F
 
 
-
+class CheckPoints:
+    bestSBU3 = "/data/tim/heronWorkspace/logs/BasicCAE1SBU3/version_0/checkpoints/epoch=48-step=9457.ckpt"
+    worseSBU3 = "/data/tim/heronWorkspace/logs/BasicCAE1/version_12/checkpoints/epoch=24-step=4825.ckpt"
 
 
 class MinFilter:
