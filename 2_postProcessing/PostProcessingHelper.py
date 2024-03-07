@@ -18,6 +18,8 @@ import torch.nn.functional as F
 class CheckPoints:
     bestSBU3 = "/data/tim/heronWorkspace/logs/BasicCAE1SBU3/version_0/checkpoints/epoch=48-step=9457.ckpt"
     worseSBU3 = "/data/tim/heronWorkspace/logs/BasicCAE1/version_12/checkpoints/epoch=24-step=4825.ckpt"
+    bestGlobal = "/data/tim/heronWorkspace/logs/BasicCAE1Global/version_0/checkpoints/epoch=48-step=66591.ckpt"
+    worseGlobal = "/data/tim/heronWorkspace/logs/BasicCAE1/version_10/checkpoints/epoch=13-step=19026-v1.ckpt"
 
 
 class MinFilter:
@@ -36,7 +38,7 @@ class PostProcess:
     def computeSum(params: dict, loaderParams: dict, checkPoint = None):
         unnorm = UnNormalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
         if checkPoint is None:
-            checkPoint = '/data/tim/heronWorkspace/logs/CAEV1/version_3/checkpoints/epoch=49-step=19350.ckpt'
+            checkPoint = CheckPoints.bestGlobal
         caeLoaded = CAEHeron.load_from_checkpoint(checkPoint, model = CAEV1)
         caeLoaded.freeze()
     
