@@ -27,6 +27,8 @@ class MinFilter:
         self.kernelSize = kernelSize
         
     def __call__(self, tensor: torch.Tensor ) -> torch.Tensor:
+        if self.kernelSize <= 1:
+            return tensor
         # Unfold the tensor into sliding local blocks
         unfolded = tensor.unfold(0, self.kernelSize, 1)
         unfolded = unfolded.unfold(1, self.kernelSize, 1)
