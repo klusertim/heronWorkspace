@@ -1,0 +1,39 @@
+batch_size: 16
+bottleneck: 128
+cameras:
+- GBU1
+- GBU4
+- KBU2
+- PSU1
+- PSU2
+- PSU3
+- SBU3
+- SGN1
+gammaScheduler: !!python/object/apply:numpy.core.multiarray.scalar
+- &id001 !!python/object/apply:numpy.dtype
+  args:
+  - f8
+  - false
+  - true
+  state: !!python/tuple
+  - 3
+  - <
+  - null
+  - null
+  - null
+  - -1
+  - -1
+  - 0
+- !!binary |
+  5YF9QGyC5j8=
+ldim: 8
+learning_rate: !!python/object/apply:numpy.core.multiarray.scalar
+- *id001
+- !!binary |
+  6ebVAL3EfT8=
+num_workers_loader: 4
+transforms: null
+weight_decay: !!python/object/apply:numpy.core.multiarray.scalar
+- *id001
+- !!binary |
+  zXxhrKDtDT8=
